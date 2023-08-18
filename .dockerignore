@@ -1,4 +1,5 @@
 .git
-**.mdxml
+.github
+.dockerignore
 **/docs
 **build

@@ -4,17 +4,17 @@
 // \brief  hpp file for FramingProtocol class
 //
 // \copyright
-// Copyright 2009-2021, by the California Institute of Technology.
+// Copyright 2009-2022, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
 //
 // ======================================================================
 
+#ifndef SVC_FRAMING_PROTOCOL_HPP
+#define SVC_FRAMING_PROTOCOL_HPP
+
 #include "Svc/FramingProtocol/FramingProtocolInterface.hpp"
 #include "Fw/Com/ComPacket.hpp"
-
-#ifndef FRAMING_PROTOCOL_HPP
-#define FRAMING_PROTOCOL_HPP
 
 namespace Svc {
 /**
@@ -33,6 +33,7 @@ class FramingProtocol {
     //! \brief constructor
     //!
     FramingProtocol();
+    virtual ~FramingProtocol(){};
 
     //! \brief setup function called to supply the interface used for allocation and sending
     //! \param interface: interface implementation, normally FramerComponentImpl
@@ -47,5 +48,5 @@ class FramingProtocol {
   PROTECTED:
     FramingProtocolInterface* m_interface;
 };
-};
-#endif  // OWLS_PROTOCOL_HPP
+}
+#endif  // SVC_FRAMING_PROTOCOL_HPP

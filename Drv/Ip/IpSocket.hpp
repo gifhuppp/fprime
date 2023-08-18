@@ -12,7 +12,7 @@
 #ifndef DRV_IP_IPHELPER_HPP_
 #define DRV_IP_IPHELPER_HPP_
 
-#include <Fw/Types/BasicTypes.hpp>
+#include <FpConfig.hpp>
 #include <IpCfg.hpp>
 #include <Os/Mutex.hpp>
 
@@ -45,6 +45,7 @@ enum SocketIpStatus {
 class IpSocket {
   public:
     IpSocket();
+    virtual ~IpSocket(){};
     /**
      * \brief configure the ip socket with host and transmission timeouts
      *
@@ -75,7 +76,7 @@ class IpSocket {
      *
      * \return true if socket is open, false otherwise
      */
-    bool isOpened(void);
+    bool isOpened();
 
     /**
      * \brief open the IP socket for communications
@@ -93,12 +94,12 @@ class IpSocket {
      * Note: delegates to openProtocol for protocol specific implementation
      * \return status of open
      */
-    SocketIpStatus open(void);
+    SocketIpStatus open();
     /**
      * \brief send data out the IP socket from the given buffer
      *
      * Sends data out of the IpSocket. This outgoing transmission will be retried several times if the transmission
-     * fails to send all the data. Retries are globally configured in the `SocketIpDriverCfg.hpp` header. Should the
+     * fails to send all the data. Retries are globally configured in the `IpCfg.hpp` header. Should the
      * socket be unavailable, SOCK_DISCONNECTED is returned and the socket should be reopened using the `open` call.
      * This can happen even when the socket has already been opened should a transmission error/closure be detected.
      * Unless an error is received, all data will have been transmitted.
@@ -132,7 +133,7 @@ class IpSocket {
      * Closes the socket opened by the open call. In this case of the TcpServer, this does NOT close server's listening
      * port (call `shutdown`) but will close the active client connection.
      */
-    void close(void);
+    void close();
 
   PROTECTED:
 

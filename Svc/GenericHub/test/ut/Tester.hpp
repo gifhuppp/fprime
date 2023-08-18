@@ -29,11 +29,11 @@ class Tester : public GenericHubGTestBase {
   public:
     //! Construct object Tester
     //!
-    Tester(void);
+    Tester();
 
     //! Destroy object Tester
     //!
-    ~Tester(void);
+    ~Tester();
 
   public:
     // ----------------------------------------------------------------------
@@ -42,20 +42,48 @@ class Tester : public GenericHubGTestBase {
 
     //! Test of basic in/out of a set of serialized ports
     //!
-    void test_in_out(void);
+    void test_in_out();
 
     //! Test of buffer in/out of a set of buffer ports
     //!
-    void test_buffer_io(void);
+    void test_buffer_io();
 
     //! Test of random in/out of a set of file and normal ports
     //!
-    void test_random_io(void);
+    void test_random_io();
+
+    //! Test of telemetry in-out
+    //!
+    void test_telemetry();
+
+    //! Test of event in-out
+    //!
+    void test_events();
+
+
 
   private:
     // ----------------------------------------------------------------------
     // Handlers for typed from ports
     // ----------------------------------------------------------------------
+
+    //! Handler for from_LogSend
+    //!
+    void from_LogSend_handler(const NATIVE_INT_TYPE portNum,   /*!< The port number*/
+                              FwEventIdType id,                /*!< Log ID */
+                              Fw::Time& timeTag,               /*!< Time Tag  */
+                              const Fw::LogSeverity& severity, /*!< The severity argument */
+                              Fw::LogBuffer& args              /*!< Buffer containing serialized log entry */
+    );
+
+    //! Handler for from_TlmSend
+    //!
+    void from_TlmSend_handler(
+          const NATIVE_INT_TYPE portNum, /*!< The port number*/
+          FwChanIdType id, /*!< Telemetry Channel ID */
+          Fw::Time &timeTag, /*!< Time Tag */
+          Fw::TlmBuffer &val /*!< Buffer containing serialized telemetry value */
+    );
 
     //! Handler for from_buffersOut
     //!
@@ -98,17 +126,19 @@ class Tester : public GenericHubGTestBase {
 
     void send_random_buffer(U32 port);
 
+    void random_fill(Fw::SerializeBufferBase& buffer, U32 max_size);
+
     // ----------------------------------------------------------------------
     // Helper methods
     // ----------------------------------------------------------------------
 
     //! Connect ports
     //!
-    void connectPorts(void);
+    void connectPorts();
 
     //! Initialize components
     //!
-    void initComponents(void);
+    void initComponents();
 
   private:
     // ----------------------------------------------------------------------

@@ -15,10 +15,10 @@
 #else
 
 #if FW_ASSERT_LEVEL == FW_FILEID_ASSERT
-#define fileIdFs "Assert file ID %d: Line: %d "
+#define fileIdFs "Assert: %d:%d"
 #define ASSERT_CAST static_cast<POINTER_CAST>
 #else
-#define fileIdFs "Assert file \"%s\": Line: %d "
+#define fileIdFs "Assert: \"%s:%d\""
 #define ASSERT_CAST reinterpret_cast<POINTER_CAST>
 #endif
 
@@ -36,12 +36,12 @@ namespace Fw {
         FILE_NAME_ARG file,
         NATIVE_UINT_TYPE lineNo,
         NATIVE_UINT_TYPE numArgs,
-        AssertArg arg1,
-        AssertArg arg2,
-        AssertArg arg3,
-        AssertArg arg4,
-        AssertArg arg5,
-        AssertArg arg6
+        FwAssertArgType arg1,
+        FwAssertArgType arg2,
+        FwAssertArgType arg3,
+        FwAssertArgType arg4,
+        FwAssertArgType arg5,
+        FwAssertArgType arg6
     ) {
         // Assumption is that file (when string) goes back to static macro in the code and will persist
         switch (numArgs) {
@@ -67,11 +67,11 @@ namespace Fw {
 
     }
 
-    void LogAssertHook::printAssert(const I8* msg) {
+    void LogAssertHook::printAssert(const CHAR* msg) {
         // do nothing since reportAssert() sends message
     }
 
-    void LogAssertHook::doAssert(void) {
+    void LogAssertHook::doAssert() {
     }
 
 } // namespace Fw

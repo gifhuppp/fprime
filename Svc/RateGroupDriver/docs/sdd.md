@@ -38,11 +38,14 @@ Port Data Type | Name | Direction | Kind | Usage
 #### 3.2 Functional Description
 
 The Svc::RateGroupDriver component has one input port that receives a system tick. 
-The constructor has an array of integer arguments that specifies the divisors for each output port.
 
-    RateGroupDriverImpl(const char* compName, NATIVE_INT_TYPE dividers[], NATIVE_INT_TYPE numDividers);
+The `configure()` function is passed an array of integer arguments that specifies the divisors for each output port. This should be called after the constructor but before any port calls are made. The contents of the array are copied during the call, so the array can be a temporary variable.
 
-The input rate will for each output port will be divided down by the value in the `dividers[]` array corresponding to the output port number.
+```
+    RateGroupDriverImpl::configure(NATIVE_INT_TYPE dividers[], NATIVE_INT_TYPE numDividers);
+```    
+
+The input rate for each output port will be divided down by the value in the `dividers[]` array corresponding to the output port number.
 
 The implementation will be ISR compliant by avoiding the following:
 
@@ -87,9 +90,7 @@ Unit Test Checklist | [Link](Checklist_Unit_Test.xlsx)
 
 ## 6. Unit Testing
 
-[Unit Test Output](../test/ut/output/test.txt)
-
-[Coverage Output - `RateGroupDriverImpl.cpp`](../test/ut/output/RateGroupDriverImpl.cpp.gcov)
+To see unit test coverage run fprime-util check --coverage
 
 ## 7. Change Log
 

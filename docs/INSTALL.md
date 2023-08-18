@@ -3,126 +3,124 @@ layout: default
 title: "F´ Installation Guide"
 ---
 
-This installation guide is specifically designed to enable individuals and researchers to get up and
-running with F´ quickly. This guide is not intended for large teams with specific content
-management (CM) requirements.
+## Overview
 
-**Note:** see the troubleshooting section at the bottom for help resolving common issues found during F´ installs.
+This installation guide is specifically designed to enable individuals and researchers to get up and running with F´ quickly. Larger projects with specific requirements may need to extend this process.
 
-## Requirements
+**Note:** See the troubleshooting section at the bottom for help resolving common issues found during F´ installs.
 
-F´ depends on several items before the user should attempt to install it. These requirements are
-listed below and should be on any system the user wishes to use. Should these items not be
-available on the user's Operating System, then a Virtual Machine should be used. One option is
-VirtualBox [https://www.virtualbox.org/](https://www.virtualbox.org/).
+**Sections:**
+- [System Requirements](#system-requirements)
+- [Setting Up the Development Environment](#setting-up-the-development-environment)
+- [Creating a New Project](#creating-a-new-project)
+- [Working With An Existing Project](#working-with-an-existing-project)
+- [Troubleshooting](#troubleshooting)
+
+  
+## System Requirements
+
+F´ depends on several items before the user should attempt to install it. These requirements are listed below and the user should ensure they are installed before proceeding with this guide.
 
 Requirements:
 
-1. Linux or Mac OS X operating system (or Windows Subsystem for Linux on Windows)
-2. CMake 3.5 or newer [https://cmake.org/download/](https://cmake.org/download/). CLI tool must be available on the system path.
-3. Bash or Bash compatible shell
-4. CLang or GCC compiler
-5. Python 3.6+ and PIP [https://www.python.org/downloads/](https://www.python.org/downloads/)
-6. Python Virtual Environment \* (pip install venv or pip install virtualenv)
+1. Linux, macOS, or WSL on Windows
+2. git
+3. [CMake 3.16](https://cmake.org/download/) or newer. CLI tool must be available on the system path.
+4. CLang or GNU C and C++ compilers (e.g. gcc and g++)
+5. [Python 3.8+](https://www.python.org/downloads/), virtual environments, and PIP
 
-You can install them using this one-liner command :
+**Note:** OS-specific notes are in the [Troubleshooting](#Troubleshooting) section below.
 
-```sudo apt-get update && sudo apt-get -y install cmake git python3-pip``` (for Debian based OS'es)
+## Setting Up the Development Environment
 
-OR
+The ecosystem of tools supporting F´ is installed as python packages available via PIP. To setup F´ tools, you should create a [virtual environment](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/), activate it, and install the latest version of fprime-tools.
 
-``` yum install cmake git python3-pip ``` (for RHEL OS)
+1. Create the virtual environment:
 
-**Note:** it is possible to install and run F´ without a virtual environment, however; for
-individuals and researchers, this is the recommended approach.
-
-### Create and Activate a new Python Environment
-
-This will create a new virtual environment for F´ to be installed into. The following commands
-will create a new virtual environment called `fprime-venv` and ensure that the virtual environment
-is activated.
-
-**Python 3.6+:**
-
+```bash
+python3 -m venv fprime-venv
 ```
-python3 -m venv ./fprime-venv
-. ./fprime-venv/bin/activate
+> You should create a new virtual environment for each new F´ project. The name `fprime-venv` may be changed.
+
+2. Activate the virtual environment
+
+```bash
+. fprime-venv/bin/activate
 ```
+> Remember to activate the virtual environment whenever you work with this F´  project.
 
-Any time the user wishes to use F´, this virtual environment should be activated. This should be
-done in each new shell the user uses. This is all that is required to activate F´ for use.
-
-**Note:** file system for VirtualEnvironment should support symbolic links, or use the `--always-copy` flag to pip.
-
-**Activate the Virtual Environment**
-
+2. Install F´  tools
 ```
-. ./fprime-venv/bin/activate
+pip install -U fprime-tools
+```
+>
+
+## Creating a New Project
+
+The entrypoint to developing with F´ is creating a new project. This will clone the F´ repository and install the full tool suite of the specified version for working with the selected version of F´.
+```
+fprime-util new --project
 ```
 
-### Cloning the F´ Repository
-
-Installation of F´ requires cloning of the F´ core repository. This uses Git. This will bring
-down the core framework and C++ files.
-
-**Clone F´**
-
+This command will ask for some input. Sample responses are below:
 ```
-git clone https://github.com/nasa/fprime
-```
-
-### Installing F´ Python Requirements
-
-F´ python-support packages have certain requirements on various Python packages available on PYPI.
-These requirements are broken out into two files one for the Autocoder tools and one for the GDS
-tools package. This is to enable users to choose which tools they'd like to use.
-
-**Installing F´ Python Packages**
-
-```
-pip install --upgrade fprime-tools fprime-gds
+project_name [MyProject]: MyProject
+fprime_branch_or_tag [devel]: devel
+Select install_venv:
+1 - yes
+2 - no
+Choose from 1, 2 [1]: 1
 ```
 
-## Checking Your F´ Installation
+Next steps: [HelloWorld Tutorial](https://fprime-community.github.io/fprime-tutorial-hello-world/)
 
-The user may easily checkout that their F´ installation has succeeded by testing the following
-commands. First, the user will test the build and Autocoder install. Next, the user will test the GDS
-layer components. Should the user not have installed the given component, the commands won't work.
+## Working With An Existing Project
 
-**Testing F´ Autocoder Installation Via Building Ref Application**
+Sometimes users wish to work with existing F´ projects. Once the project has been acquired, users should install the tools associated with that project. This is done with:
 
-```
-cd Ref
-fprime-util generate
-fprime-util build --jobs "$(nproc || printf '%s\n' 1)"
-```
+1. Ensure a virtual environment for this project has been created and [activated](#setting-up-the-development-environment)
 
-**Testing F´ GDS Installation Via Running HTML GUI**
+2. Download the project
+> When using `git` and submodules, remember to run `git submodule update --init --recursive`
 
-```
-fprime-gds -g html -r <path to fprime checkout>/Ref/build-artifacts
-```
+4. Install the required F´ tools version
+`pip install -r <project>/fprime/requirements.txt`
 
-**Note:** `Ref` should contain pre-built dictionaries and binaries for the user's system. This can
-be achieved by running the Autocoder installation test (the user must have a working Autocoder
-installation).
-
-## (Optional) Installing Tab Completion
-
-Several of F´s command-line utilities support tab completion. To enable these tools to use it, see the [instructions here](UsersGuide/user/autocomplete.md).
+> Some projects ship their own `requirements.txt`.  Install using that file if it exists.
 
 ## Troubleshooting
 
-This section will add some known hints to trouble-shooting with the installation of F´. This will hopefully help users
-install things more effectively.
+This section will add some known hints to trouble-shooting with the installation of F´. This will hopefully help users install things more effectively.
 
-### Ubuntu, Debian, Python PIP, and Python Virtual Environments
+### fprime-util: command not found
 
-Ubuntu and possibly other Debian variants don't include the virtual environment nor pip packages in the default python 3
-installation. To get a fully functional Python 3 installation, use these commands on Ubuntu:
+If the user is using a virtual environment and receives the 'command not found', the problem is likely caused by the environment not being sourced in a new terminal. Make sure to source the environment before running:
 
 ```
-sudo apt install python3 python3-pip python3-venv
+. $HOME/fprime-venv/bin/activate
+```
+
+If installing without a virtual environment, PIP occasionally uses `$HOME/.local/bin` as a place to install user tools. Users running without virtual environments should add this directory to the path.
+
+### Helper script 'fpp-redirect-helper' exited with reason: Permission denied
+
+This error can occur when the helper-script, *(`fprime/cmake/autocoder/fpp-wrapper/fpp-redirect-helper`)* loses its execution permission.
+
+To verify that this is the case, change to the directory containing `fpp-redirect-helper` and verify that it is executable.
+
+* `cd fprime/cmake/autocoder/fpp-wrapper/`
+* `ls -l`
+
+If it is not executable, add the permission back.
+
+* `chmod 700 fpp-redirect-helper`
+
+### Ubuntu, Debian, Java and Python PIP
+
+Ubuntu and possibly other Debian variants don't include the pip packages in the default Python 3 installation. To get fully functional, use these commands on Ubuntu and Debian based systems:
+
+```
+sudo apt install git cmake default-jre python3 python3-pip python3-venv
 ```
 
 Now you should be able to run the installation without trouble.
@@ -135,15 +133,25 @@ If the user chooses to install CMake directly from the CMake site (not using hom
 sudo "/Applications/CMake.app/Contents/bin/cmake-gui" --install
 ```
 
-More information can be found here: https://stackoverflow.com/questions/30668601/installing-cmake-command-line-tools-on-a-mac
+More information can be found [here](https://stackoverflow.com/questions/30668601/installing-cmake-command-line-tools-on-a-mac)
 
 ### System Python, Packages, and Python3
 
-Many operating systems offer python PIP packages through their package manager (apt, yum, etc). Most python projects
-recommend avoiding those packages, but rather installing from PIP in a virtual environment. The reason for this is that the
-version of the python package from the OS may not be the required version that the python project depends on. Thus, for
-F´ we strongly recommend using a virtual environment and not system packages.
+Many operating systems offer python PIP packages through their package manager (apt, yum, etc). Most python projects recommend avoiding those packages and instead installing them from PIP in a virtual environment. The reason for this is that the version of the python package from the OS may not be the required version that the python project depends on. Thus, users may choose to install F´ into a virtual environment. This is outside the scope of this document.
 
-If the user chooses to use system python as their python to run F´, they must ensure that "python" available on the path
-points to a Python3 install, not the Python 2 installation that most OSes default to. Also, packages F´ uses when installing
-may break the system Python, and prevent the OS from functioning. Use at your own risk.
+### SSL Error with Python 3.7+ on macOS
+
+The version of openSSL bundled with Python 3.7+ requires access to macOS's root certificates. If the following error is  encountered while installing fprime: 
+
+```
+Failed find expected download: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get  local issuer certificate
+```
+
+Then run the following command in a macOS terminal to install necessary certificates: 
+
+```
+cd /Applications/Python\ 3.X/
+./Install\ Certificates.command
+```
+
+After running above command, re-try installing fprime.  

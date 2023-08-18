@@ -41,12 +41,13 @@ def get_nearest_build_root(path):
     :param path: path to find nearest build root to
     :return: nearest build root
     """
+    path = os.path.abspath(path)
     parents = filter(
         lambda build: os.path.commonpath([build, path]) == build, get_build_roots()
     )
 
     def path_reducer(agg, item):
-        """ Reduces to the longest path """
+        """Reduces to the longest path"""
         common = os.path.commonpath([item, path])
         if agg is None or len(common) > len(agg):
             return common
@@ -120,7 +121,7 @@ class BuildRootMissingException(Exception):
     """
 
     def __init__(self, item):
-        """Initialize super exception """
+        """Initialize super exception"""
         super().__init__(
             "{} not found under any location: {}".format(
                 item, ",".join(get_build_roots())
@@ -134,7 +135,7 @@ class BuildRootCollisionException(Exception):
     """
 
     def __init__(self, occurrences):
-        """ Initialize super exception """
+        """Initialize super exception"""
         super().__init__(
             "Item found at multiple locations: {}".format(",".join(occurrences))
         )

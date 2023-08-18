@@ -2,7 +2,7 @@
 // Created by mstarch on 11/13/20.
 //
 #include "Fw/Buffer/Buffer.hpp"
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 #include <gtest/gtest.h>
 
 
@@ -30,6 +30,11 @@ void test_basic() {
     ASSERT_EQ(buffer_new.getSize(), sizeof(data));
     ASSERT_EQ(buffer_new.getContext(), 1234);
     ASSERT_EQ(buffer, buffer_new);
+
+    // Creating empty buffer
+    Fw::Buffer testBuffer(nullptr,0);
+    ASSERT_EQ(testBuffer.getData(), nullptr);
+    ASSERT_EQ(testBuffer.getSize(), 0);
 
     // Assignment operator with transitivity
     Fw::Buffer buffer_assignment1, buffer_assignment2;
@@ -114,6 +119,10 @@ void test_serialization() {
     Fw::Buffer buffer_new;
     externalSerializeBuffer.deserialize(buffer_new);
     ASSERT_EQ(buffer_new, buffer);
+
+    // Make sure internal ExternalSerializeBuffer is reinitialized
+    ASSERT_EQ(buffer_new.m_serialize_repr.m_buff,data);
+    ASSERT_EQ(buffer_new.m_serialize_repr.m_buffSize,sizeof(data));
 }
 
 

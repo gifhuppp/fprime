@@ -58,7 +58,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         """
         Wrapper to write tmpl to files desc.
         """
-        DEBUG.debug("ComponentVisitorBase:%s" % visit_str)
+        DEBUG.debug(f"ComponentVisitorBase:{visit_str}")
         DEBUG.debug("===================================")
         DEBUG.debug(c)
         self.__fp.writelines(c.__str__())
@@ -68,7 +68,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         """
         Make a list of args into a string
         """
-        return ', '.join(args)
+        return ", ".join(args)
 
     def buildFileName(self, obj):
         """
@@ -81,8 +81,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
                 + self.config("component", self.__visitor)
             )
             DEBUG.info(
-                "Generating code filename: %s, using XML namespace and name attributes..."
-                % filename
+                f"Generating code filename: {filename}, using XML namespace and name attributes..."
             )
         else:
             xml_file = obj.get_xml_filename()
@@ -93,12 +92,9 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
                 filename = x[0].split(s[0])[0] + self.config(
                     "component", self.__visitor
                 )
-                DEBUG.info("Generating code filename: %s..." % filename)
+                DEBUG.info(f"Generating code filename: {filename}...")
             else:
-                msg = (
-                    "XML file naming format not allowed (must be XXXComponentAi.xml), Filename: %s"
-                    % xml_file
-                )
+                msg = f"XML file naming format not allowed (must be XXXComponentAi.xml), Filename: {xml_file}"
                 PRINT.info(msg)
                 raise ValueError(msg)
         return filename
@@ -182,7 +178,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         """
         length = len(params)
         if length == 0:
-            return self.emitIndent(indent) + "void"
+            return ""
         else:
             str = ""
             for i in range(0, length - 1):
@@ -270,7 +266,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         c.param_opCode = ("opCode", "const FwOpcodeType", "The opcode")
         c.param_response = (
             "response",
-            "const Fw::CommandResponse",
+            "const Fw::CmdResponse",
             "The command response",
         )
 
@@ -313,7 +309,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         c.param_log_severity = ("severity", "const Fw::LogSeverity", "The severity")
         c.param_text_log_severity = (
             "severity",
-            "const Fw::TextLogSeverity",
+            "const Fw::TextLogSeverity&",
             "The severity",
         )
         c.param_args = ("args", "Fw::LogBuffer&", "The serialized arguments")
@@ -381,14 +377,12 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
             (mnemonic, opcodes, sync, priority, full, comment) = xxx_todo_changeme3
             if self.isAsync(sync):
                 if len(opcodes) == 1:
-                    return "CMD_" + mnemonic.upper()
+                    return f"CMD_{mnemonic.upper()}"
                 else:
-                    mlist = list()
-                    inst = 0
-                    for opcode in opcodes:
-                        mlist.append("CMD_" + mnemonic.upper() + "_%d" % inst)
-                        inst += 1
-                    return mlist
+                    return [
+                        f"CMD_{mnemonic.upper()}_{inst}"
+                        for inst, opcode in enumerate(opcodes)
+                    ]
             else:
                 return None
 
@@ -396,7 +390,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
 
         def h(xxx_todo_changeme4):
             (name, priority, full) = xxx_todo_changeme4
-            return "INT_IF_" + name.upper()
+            return f"INT_IF_{name.upper()}"
 
         self.__model_parser.getInternalInterfacesList(obj)
         interface_types = self.mapPartial(h, c.internal_interfaces)
@@ -436,12 +430,13 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         c.has_output_ports = len(c.output_ports) > 0
         c.has_typed_output_ports = len(c.typed_output_ports) > 0
         c.has_serial_output_ports = len(c.serial_output_ports) > 0
-        roles = [role for name, ptype, sync, priority, role, max_number in c.output_ports]
+        roles = [
+            role for name, ptype, sync, priority, role, max_number in c.output_ports
+        ]
         c.has_time_get = "TimeGet" in roles
 
-
     def initPortIncludes(self, obj, c):
-        c.port_includes = list()
+        c.port_includes = []
         for include in self.__model_parser.uniqueList(obj.get_xml_port_files()):
             c.port_includes.append(include.replace("PortAi.xml", "PortAc.hpp"))
 
@@ -755,8 +750,10 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         c.component_base = c.name() + "ComponentBase"
         if obj.get_namespace() is None:
             c.namespace_list = None
+            c.namespace = ""
         else:
             c.namespace_list = obj.get_namespace().split("::")
+            c.namespace = obj.get_namespace()
         c.user = getuser()
         c.args_string = self.argsString
         c.doxygen_pre_comment = self.doxygenPreComment
@@ -780,10 +777,7 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         Include any headers for channel/parameter serializable includes
         """
         ser_includes = self.__model_parser.uniqueList(obj.get_xml_serializable_files())
-        s_includes = [
-            sinc.replace("Ai.xml", "Ac.hpp")
-            for sinc in ser_includes
-        ]
+        s_includes = [sinc.replace("Ai.xml", "Ac.hpp") for sinc in ser_includes]
         c.ser_includes = s_includes
 
     def initTelemetry(self, obj, c):
@@ -871,8 +865,6 @@ class ComponentVisitorBase(AbstractVisitor.AbstractVisitor):
         """
         DEBUG.info("Open file: %s" % filename)
         self.__fp = open(filename, "w")
-        if self.__fp is None:
-            raise Exception("Could not open file %s") % filename
         DEBUG.info("Completed")
 
     def initFilesVisit(self, obj):

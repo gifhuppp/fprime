@@ -11,11 +11,14 @@
 // ======================================================================
 
 
-#ifndef DEFRAMING_PROTOCOLINTERFACE_HPP
-#define DEFRAMING_PROTOCOLINTERFACE_HPP
+#ifndef SVC_DEFRAMING_PROTOCOL_INTERFACE_HPP
+#define SVC_DEFRAMING_PROTOCOL_INTERFACE_HPP
 
 #include <Fw/Buffer/Buffer.hpp>
 #include <Fw/Time/Time.hpp>
+
+namespace Svc {
+
 /**
  * \brief interface supplied to the deframing protocol
  *
@@ -25,6 +28,7 @@
  */
 class DeframingProtocolInterface {
   public:
+    virtual ~DeframingProtocolInterface(){};
     /**
      * \brief called to allocate memory, typically delegating to an allocate port call
      * \param size: size of the allocation request
@@ -40,4 +44,5 @@ class DeframingProtocolInterface {
 
 };
 
-#endif  // DEFRAMING_PROTOCOLINTERFACE_HPP
+}
+#endif  // SVC_DEFRAMING_PROTOCOL_INTERFACE_HPP

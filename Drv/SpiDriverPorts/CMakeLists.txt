@@ -1,12 +1,12 @@
 ####
 # F prime CMakeLists.txt:
 #
-# SOURCE_FILES: combined list of source and autocoding diles
+# SOURCE_FILES: combined list of source and autocoding files
 # MOD_DEPS: (optional) module dependencies
 #
 ####
 set(SOURCE_FILES
-	"${CMAKE_CURRENT_LIST_DIR}/SpiReadWritePortAi.xml"
+  "${CMAKE_CURRENT_LIST_DIR}/SpiDriverPorts.fpp"
 )
 
 register_fprime_module()

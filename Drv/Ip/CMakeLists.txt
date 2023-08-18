@@ -1,7 +1,7 @@
 ####
 # F prime CMakeLists.txt:
 #
-# SOURCE_FILES: combined list of source and autocoding diles
+# SOURCE_FILES: combined list of source and autocoding files
 # MOD_DEPS: (optional) module dependencies
 #
 ####
@@ -12,12 +12,16 @@ set(SOURCE_FILES
 	"${CMAKE_CURRENT_LIST_DIR}/UdpSocket.cpp"
 	"${CMAKE_CURRENT_LIST_DIR}/SocketReadTask.cpp"
 )
-set(MOD_DEPS Os)
+
+set(MOD_DEPS
+	Os
+	Fw/Buffer
+)
 
 register_fprime_module()
 
 # The PortSelector library and testing helper is only needed on Testing build
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "TESTING")
+if (BUILD_TESTING)
 	add_library(PortSelector STATIC
 		"${CMAKE_CURRENT_LIST_DIR}/test/ut/PortSelector.cpp"
 		"${CMAKE_CURRENT_LIST_DIR}/test/ut/SocketTestHelper.cpp")

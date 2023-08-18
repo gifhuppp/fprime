@@ -14,12 +14,12 @@ namespace Os {
 class BareTaskHandle {
     public:
         //!< Constructor sets enabled to false
-        BareTaskHandle() : m_enabled(false), m_priority(0), m_routine(NULL) {}
+        BareTaskHandle() : m_enabled(false), m_priority(0), m_routine(nullptr) {}
         //!< Is this task enabled or not
         bool m_enabled;
         //!< Save the priority
         NATIVE_INT_TYPE m_priority;
-        //!< Function passed in to the task
+        //!< Function passed into the task
         Task::taskRoutine m_routine;
         //!< Argument input pointer
         void* m_argument;

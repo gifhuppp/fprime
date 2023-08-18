@@ -20,10 +20,9 @@ import logging
 import os
 import sys
 
-from lxml import etree
-
 from fprime_ac.utils import ConfigManager
 from fprime_ac.utils.exceptions import FprimeRngXmlValidationException
+from lxml import etree
 
 #
 # Python extension modules and custom interfaces
@@ -63,7 +62,7 @@ class XmlPortsParser:
         self.__enum_list_items = []
         self.__modifier = None
         #
-        if os.path.isfile(xml_file) == False:
+        if not os.path.isfile(xml_file):
             str = "ERROR: Could not find specified XML file %s." % xml_file
             raise OSError(str)
         fd = open(xml_file)
@@ -73,7 +72,7 @@ class XmlPortsParser:
 
         xml_parser = etree.XMLParser(remove_comments=True)
         element_tree = etree.parse(fd, parser=xml_parser)
-        fd.close() #Close the file, which is only used for the parsing above        
+        fd.close()  # Close the file, which is only used for the parsing above
 
         # Validate against schema
         relax_file_handler = open(ROOTDIR + self.__config.get("schema", "interface"))
@@ -87,7 +86,7 @@ class XmlPortsParser:
 
         interface = element_tree.getroot()
         if interface.tag != "interface":
-            PRINT.info("%s is not a interface file" % xml_file)
+            PRINT.info("%s is not an interface file" % xml_file)
             sys.exit(-1)
 
         print("Parsing Interface %s" % interface.attrib["name"])
@@ -124,7 +123,7 @@ class XmlPortsParser:
                         p = arg.attrib["pass_by"]
                     else:
                         p = None
-                    if t == "string" or t == "buffer":
+                    if t in ("string", "buffer"):
                         if not "size" in list(arg.attrib.keys()):
                             PRINT.info(
                                 "%s: arg %s string must specify size tag"
@@ -238,7 +237,7 @@ class XmlPortsParser:
 
     def get_interface(self):
         """
-        Returns a interface object.
+        Returns an interface object.
         """
         return self.__port
 
@@ -253,7 +252,7 @@ class Interface:
     """
     Data container for an interface.
     Note in the context of this architecture
-    a port has just on interface and this is
+    a port has just one interface and this is
     it.
     """
 
@@ -305,7 +304,7 @@ class Arg:
         @param type:  Type of arg (must have supporting include xml)
         @param modifier:  Whether argument is passed by value, reference, or pointer
         @param size:  size of array for string and buffer
-        @param comment:  A single or multline comment
+        @param comment:  A single or multiline comment
         """
         self.__name = name
         self.__type = atype

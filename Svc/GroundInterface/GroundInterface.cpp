@@ -1,13 +1,13 @@
-// ====================================================================== 
+// ======================================================================
 // \title  GroundInterface.cpp
 // \author lestarch
 // \brief  cpp file for GroundInterface component implementation class
-// ====================================================================== 
+// ======================================================================
 
 #include <Fw/Com/ComPacket.hpp>
 #include <Svc/GroundInterface/GroundInterface.hpp>
-#include "Fw/Types/BasicTypes.hpp"
-#include <string.h>
+#include <FpConfig.hpp>
+#include <cstring>
 
 namespace Svc {
 
@@ -16,7 +16,7 @@ namespace Svc {
   const U32 GroundInterfaceComponentImpl::END_WORD = static_cast<U32>(0xcafecafe);
 
   // ----------------------------------------------------------------------
-  // Construction, initialization, and destruction 
+  // Construction, initialization, and destruction
   // ----------------------------------------------------------------------
 
   GroundInterfaceComponentImpl ::
@@ -33,13 +33,13 @@ namespace Svc {
   void GroundInterfaceComponentImpl ::
     init(
         const NATIVE_INT_TYPE instance
-    ) 
+    )
   {
     GroundInterfaceComponentBase::init(instance);
   }
 
   GroundInterfaceComponentImpl ::
-    ~GroundInterfaceComponentImpl(void)
+    ~GroundInterfaceComponentImpl()
   {
 
   }
@@ -129,7 +129,7 @@ namespace Svc {
 
       //read packet descriptor in size agnostic way
       U8 packet_descriptor_size = sizeof(FwPacketDescriptorType);
-      U8 packet_type_bytes[packet_descriptor_size];
+      U8 packet_type_bytes[sizeof(FwPacketDescriptorType)];
       Fw::SerializeStatus stat = m_in_ring.peek(packet_type_bytes, packet_descriptor_size, HEADER_SIZE);
       //m_in_ring.peek(packet_type, HEADER_SIZE); // this way is only valid for 4byte packet descriptors
       if(stat == Fw::FW_SERIALIZE_OK)
@@ -176,7 +176,7 @@ namespace Svc {
       TOKEN_TYPE start;
       U32 checksum; //TODO: make this run a CRC32
       // Inner-loop, process ring buffer looking for at least the header
-      while (m_in_ring.get_remaining_size() >= HEADER_SIZE) {
+      while (m_in_ring.get_allocated_size() >= HEADER_SIZE) {
           m_data_size = 0;
           // Peek into the header and read out values
           Fw::SerializeStatus status = m_in_ring.peek(start, 0);
@@ -189,7 +189,7 @@ namespace Svc {
               continue;
           }
           // Check for enough data to deserialize everything otherwise break and wait for more.
-          else if (m_in_ring.get_remaining_size() < (HEADER_SIZE + m_data_size + sizeof(END_WORD))) {
+          else if (m_in_ring.get_allocated_size() < (HEADER_SIZE + m_data_size + sizeof(END_WORD))) {
               break;
           }
           // Continue with the data portion and checksum
@@ -211,8 +211,8 @@ namespace Svc {
   {
       NATIVE_UINT_TYPE buffer_offset = 0;
       while (buffer_offset < buffer.getSize()) {
-          NATIVE_UINT_TYPE ser_size = (buffer.getSize() >= m_in_ring.get_remaining_size(true)) ?
-              m_in_ring.get_remaining_size(true) : static_cast<NATIVE_UINT_TYPE>(buffer.getSize());
+          NATIVE_UINT_TYPE ser_size = (buffer.getSize() >= m_in_ring.get_free_size()) ?
+              m_in_ring.get_free_size() : static_cast<NATIVE_UINT_TYPE>(buffer.getSize());
           m_in_ring.serialize(buffer.getData() + buffer_offset, ser_size);
           buffer_offset = buffer_offset + ser_size;
           processRing();

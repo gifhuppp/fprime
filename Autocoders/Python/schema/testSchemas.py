@@ -4,7 +4,6 @@ import sys
 import pytest
 from lxml import etree
 
-
 """
 To add tests, go down to the setup function.
 """
@@ -50,7 +49,7 @@ class schema_test:
         if not os.path.exists(file_name):
             raise Exception("File does not exist - {}.".format(file_name))
 
-        if not file_name.upper().endswith("." + extension.upper()):
+        if not file_name.upper().endswith(f".{extension.upper()}"):
             raise Exception(
                 "File does not end with proper extension {} - {}".format(
                     extension, file_name
@@ -117,7 +116,7 @@ class schema_test:
                         root_tag = parsed.getroot().tag
                         if root_tag in list_of_root_tags:
                             self.add_test(
-                                "Path Added: " + file, new_path, None, parsed_xml=parsed
+                                f"Path Added: {file}", new_path, None, parsed_xml=parsed
                             )
                     except:
                         pass
@@ -168,7 +167,7 @@ class schema_test:
                         + str(test_set[2])
                         + "."
                     )
-                    print("File path - " + test_set[1])
+                    print(f"File path - {test_set[1]}")
                     print(excinfo)
                     print("\n")
                     sys.exit(1)
@@ -183,8 +182,8 @@ class schema_test:
                     + " failed validating the current file."
                 )
                 print("\n")
-                print(test_set[0] + " raised an exception but was supposed to pass.")
-                print("File path - " + test_set[1])
+                print(f"{test_set[0]} raised an exception but was supposed to pass.")
+                print(f"File path - {test_set[1]}")
 
                 print("\n")
                 raise
@@ -235,7 +234,7 @@ def setup():
     channel_test.add_test(
         "Missing enum", "sample_XML_files/channel/missingEnum.xml", AssertionError
     )
-    
+
     command_test.add_test(
         "All working", "sample_XML_files/command/allWorking.xml", None
     )
@@ -259,7 +258,7 @@ def setup():
         "sample_XML_files/command/noStringSize.xml",
         AssertionError,
     )
-    
+
     component_test.add_test(
         "Base all working", "sample_XML_files/component/baseAllWorking.xml", None
     )
@@ -274,9 +273,9 @@ def setup():
         "sample_XML_files/component/interfaceOnly.xml",
         AssertionError,
     )
-    
+
     event_test.add_test("All working", "sample_XML_files/event/allWorking.xml", None)
-    
+
     event_test.add_test(
         "Event throttle negative",
         "sample_XML_files/event/negativeThrottle.xml",
@@ -392,17 +391,19 @@ def setup():
     topology_test.parse_and_add_directory(["deployment", "assembly"], "../test")
 
     # Add schemas to test_list
-    
-    test_list.extend((
-        topology_test,
-        component_test,
-        command_test,
-        parameter_test,
-        channel_test,
-        interface_test,
-        serializable_test,
-        event_test
-    ))
+
+    test_list.extend(
+        (
+            topology_test,
+            component_test,
+            command_test,
+            parameter_test,
+            channel_test,
+            interface_test,
+            serializable_test,
+            event_test,
+        )
+    )
 
     return test_list
 

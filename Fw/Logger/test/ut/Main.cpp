@@ -14,7 +14,7 @@
 #include <Fw/Logger/test/ut/LoggerRules.hpp>
 #include <gtest/gtest.h>
 
-#include <stdio.h>
+#include <cstdio>
 
 #define STEP_COUNT 10000
 
@@ -49,7 +49,7 @@ TEST(LoggerTests, RandomLoggerTests) {
 /**
  * Test that the most basic logging function works.
  */
-TEST(LoggerTests, BassicGoodLogger) {
+TEST(LoggerTests, BasicGoodLogger) {
     // Setup and register logger
     MockLogging::FakeLogger logger;
     Fw::Logger::registerLogger(&logger);
@@ -59,13 +59,13 @@ TEST(LoggerTests, BassicGoodLogger) {
     log.apply(logger);
 }
 /**
- * Test that null-logging works function works.
+ * Test that null-logging function works.
  */
-TEST(LoggerTests, BassicBadLogger) {
+TEST(LoggerTests, BasicBadLogger) {
     // Basic discard logging
     MockLogging::FakeLogger logger;
-    Fw::Logger::registerLogger(NULL);
-    logger.s_current = NULL;
+    Fw::Logger::registerLogger(nullptr);
+    logger.s_current = nullptr;
     LoggerRules::LogBad log("Log Discarded");
     log.apply(logger);
 }
@@ -73,7 +73,7 @@ TEST(LoggerTests, BassicBadLogger) {
 /**
  * Test that registration works. Multiple times, as contains randomness.
  */
-TEST(LoggerTests, BassicRegLogger) {
+TEST(LoggerTests, BasicRegLogger) {
     // Basic discard logging
     MockLogging::FakeLogger logger;
     LoggerRules::Register reg("Register");
@@ -89,5 +89,6 @@ TEST(LoggerTests, BassicRegLogger) {
 
 int main(int argc, char* argv[]) {
     ::testing::InitGoogleTest(&argc, argv);
+    STest::Random::seed();
     return RUN_ALL_TESTS();
 }

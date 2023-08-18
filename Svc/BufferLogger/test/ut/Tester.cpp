@@ -33,13 +33,8 @@ namespace Svc {
 
   Tester ::
     Tester(bool doInitLog) :
-#if FW_OBJECT_NAMES == 1
       BufferLoggerGTestBase("Tester", MAX_HISTORY_SIZE),
       component("BufferLogger")
-#else
-      BufferLoggerGTestBase(MAX_HISTORY_SIZE),
-      component()
-#endif
   {
     (void) system("rm -rf buf");
     (void) system("mkdir buf");
@@ -57,7 +52,7 @@ namespace Svc {
   }
 
   Tester ::
-    ~Tester(void)
+    ~Tester()
   {
 
   }
@@ -67,9 +62,9 @@ namespace Svc {
   // ----------------------------------------------------------------------
 
   void Tester ::
-    LogNoInit(void)
+    LogNoInit()
   {
-    this->component.m_file.baseName = Fw::EightyCharString("LogNoInit");
+    this->component.m_file.baseName = Fw::String("LogNoInit");
     // NOTE (mereweth) - make something sensible happen when no-one calls initLog()
     // Send data
     this->sendComBuffers(3);
@@ -104,7 +99,7 @@ namespace Svc {
   // ----------------------------------------------------------------------
 
   void Tester ::
-    connectPorts(void)
+    connectPorts()
   {
 
     // bufferSendIn
@@ -188,7 +183,7 @@ namespace Svc {
   }
 
   void Tester ::
-    initComponents(void)
+    initComponents()
   {
     this->init();
     this->component.init(
@@ -197,13 +192,13 @@ namespace Svc {
   }
 
   void Tester ::
-    dispatchOne(void)
+    dispatchOne()
   {
     this->component.doDispatch();
   }
 
   void Tester ::
-    dispatchAll(void)
+    dispatchAll()
   {
     while(this->component.m_queue.getNumMsgs() > 0)
       this->dispatchOne();
@@ -244,19 +239,19 @@ namespace Svc {
   }
 
   void Tester ::
-    checkFileExists(const Fw::EightyCharString& fileName)
+    checkFileExists(const Fw::StringBase& fileName)
   {
-    Fw::EightyCharString command;
+    Fw::String command;
     command.format("test -f %s", fileName.toChar());
     const int status = system(command.toChar());
     ASSERT_EQ(0, status);
   }
 
   void Tester ::
-    checkHashFileExists(const Fw::EightyCharString& fileName)
+    checkHashFileExists(const Fw::StringBase& fileName)
   {
     Os::ValidatedFile validatedFile(fileName.toChar());
-    const Fw::EightyCharString& hashFileName = validatedFile.getHashFileName();
+    const Fw::String& hashFileName = validatedFile.getHashFileName();
     this->checkFileExists(hashFileName);
   }
 
@@ -270,7 +265,7 @@ namespace Svc {
 
     {
       // Make sure the file size is within bounds
-      U64 actualSize = 0;
+      FwSizeType actualSize = 0;
       const Os::FileSystem::Status status =
         Os::FileSystem::getFileSize(fileName, actualSize);
       ASSERT_EQ(Os::FileSystem::OP_OK, status);
