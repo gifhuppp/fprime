@@ -29,14 +29,9 @@ class StaticMemoryComponentImpl : public StaticMemoryComponentBase {
     StaticMemoryComponentImpl(const char* const compName /*!< The component name*/
     );
 
-    //! Initialize object StaticMemory
-    //!
-    void init(const NATIVE_INT_TYPE instance = 0 /*!< The instance number*/
-    );
-
     //! Destroy object StaticMemory
     //!
-    ~StaticMemoryComponentImpl(void);
+    ~StaticMemoryComponentImpl();
 
   PRIVATE:
 

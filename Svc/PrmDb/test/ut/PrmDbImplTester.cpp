@@ -8,17 +8,20 @@
 #include <Svc/PrmDb/test/ut/PrmDbImplTester.hpp>
 #include <Fw/Com/ComBuffer.hpp>
 #include <Fw/Com/ComPacket.hpp>
-#include <Os/Stubs/FileStubs.hpp>
-
+#include <Os/Stub/test/File.hpp>
+#include <Os/Delegate.hpp>
 #include <cstdio>
 #include <gtest/gtest.h>
-
+#include "Os/Stub/FileSystem.hpp"
+#include "Os/Stub/Directory.hpp"
 #include <Fw/Test/UnitTest.hpp>
 
 namespace Svc {
 
-    void PrmDbImplTester::runNominalPopulate(void) {
+    typedef PrmDb_PrmWriteError PrmWriteError;
+    typedef PrmDb_PrmReadError PrmReadError;
 
+    void PrmDbImplTester::runNominalPopulate() {
         // clear database
         this->m_impl.clearDb();
 
@@ -111,7 +114,9 @@ namespace Svc {
         ASSERT_EVENTS_PrmIdAdded(0,id);
     }
 
-    void PrmDbImplTester::runNominalSaveFile(void) {
+    void PrmDbImplTester::runNominalSaveFile() {
+        Os::Stub::File::Test::StaticData::setWriteResult(m_io_data, sizeof m_io_data);
+        Os::Stub::File::Test::StaticData::setNextStatus(Os::File::OP_OK);
         // fill with data
         this->runNominalPopulate();
         // save the data
@@ -128,14 +133,20 @@ namespace Svc {
         Fw::QueuedComponentBase::MsgDispatchStatus stat = this->m_impl.doDispatch();
         EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
         ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_OK);
+        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::CmdResponse::OK);
         ASSERT_EVENTS_SIZE(1);
         ASSERT_EVENTS_PrmFileSaveComplete_SIZE(1);
         ASSERT_EVENTS_PrmFileSaveComplete(0,2);
 
     }
 
-    void PrmDbImplTester::runNominalLoadFile(void) {
+    void PrmDbImplTester::runNominalLoadFile() {
+        // Preconditions to populate the write file
+        this->runNominalSaveFile();
+
+        Os::Stub::File::Test::StaticData::setReadResult(m_io_data, Os::Stub::File::Test::StaticData::data.pointer);
+        Os::Stub::File::Test::StaticData::setNextStatus(Os::File::OP_OK);
+
         // save the data
         this->clearEvents();
 
@@ -159,7 +170,7 @@ namespace Svc {
         // deserialize it
         Fw::SerializeStatus stat = pBuff.deserialize(testVal);
         EXPECT_EQ(Fw::FW_SERIALIZE_OK,stat);
-        EXPECT_EQ(testVal,(U32)0x15);
+        EXPECT_EQ(testVal,0x15u);
 
         // second
         pBuff.resetSer();
@@ -167,18 +178,18 @@ namespace Svc {
         // deserialize it
         stat = pBuff.deserialize(testVal);
         EXPECT_EQ(Fw::FW_SERIALIZE_OK,stat);
-        EXPECT_EQ(testVal,(U32)0x30);
+        EXPECT_EQ(testVal,0x30u);
 
     }
 
-    void PrmDbImplTester::runMissingExtraParams(void) {
+    void PrmDbImplTester::runMissingExtraParams() {
 
         // load up database
         this->runNominalPopulate();
         // ask for ID that isn't present
         this->clearEvents();
         Fw::ParamBuffer pBuff;
-        EXPECT_EQ(Fw::PARAM_INVALID,this->invoke_to_getPrm(0,0x1000,pBuff));
+        EXPECT_EQ(Fw::ParamValid::INVALID,this->invoke_to_getPrm(0,0x1000,pBuff).e);
         ASSERT_EVENTS_SIZE(1);
         ASSERT_EVENTS_PrmIdNotFound_SIZE(1);
         ASSERT_EVENTS_PrmIdNotFound(0,0x1000);
@@ -188,10 +199,9 @@ namespace Svc {
 
         this->clearEvents();
         // write too many entries
-        for (NATIVE_INT_TYPE entry = 0; entry <= PRMDB_NUM_DB_ENTRIES; entry++) {
-            Fw::ParamBuffer pBuff;
-            EXPECT_EQ(Fw::FW_SERIALIZE_OK,pBuff.serialize((U32)10));
-            this->invoke_to_setPrm(0,(FwPrmIdType)entry,pBuff);
+        for (FwPrmIdType entry = 0; entry <= PRMDB_NUM_DB_ENTRIES; entry++) {
+            EXPECT_EQ(Fw::FW_SERIALIZE_OK,pBuff.serialize(static_cast<U32>(10)));
+            this->invoke_to_setPrm(0,entry,pBuff);
             // dispatch message
             this->m_impl.doDispatch();
         }
@@ -203,7 +213,7 @@ namespace Svc {
 
     }
 
-    void PrmDbImplTester::runRefPrmFile(void) {
+    void PrmDbImplTester::runRefPrmFile() {
 
         {
             // ID = 00x1000
@@ -332,7 +342,7 @@ namespace Svc {
         EXPECT_EQ(mstat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
 
         ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_OK);
+        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::CmdResponse::OK);
         ASSERT_EVENTS_SIZE(1);
         ASSERT_EVENTS_PrmFileSaveComplete_SIZE(1);
         ASSERT_EVENTS_PrmFileSaveComplete(0,4);
@@ -343,234 +353,167 @@ namespace Svc {
         PrmDbGTestBase::init();
     }
 
+    PrmDbImplTester* PrmDbImplTester::PrmDbTestFile::s_tester = nullptr;
 
-void PrmDbImplTester::runFileReadError(void) {
-
-        // File open error
-
-        this->clearEvents();
-        // register interceptor
-        Os::registerOpenInterceptor(this->OpenInterceptor,static_cast<void*>(this));
-        this->m_testOpenStatus = Os::File::DOESNT_EXIST;
-        // call function to read parameter file
-        this->m_impl.readParamFile();
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_OPEN,0,Os::File::DOESNT_EXIST);
-        Os::clearOpenInterceptor();
-
-        // Test delimiter read error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // delimiter is first read
-        this->m_readsToWait = 0;
-        // set read status to bad
-        this->m_testReadStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_READ_ERROR;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_DELIMITER,0,Os::File::NOT_OPENED);
-        Os::clearReadInterceptor();
-
-        // Test delimiter read size error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // delimiter is first read
-        this->m_readsToWait = 0;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_SIZE_ERROR;
-        // set size to size of byte + 1
-        this->m_readSize = sizeof(U8)+1;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_DELIMITER_SIZE,0,sizeof(U8) + 1);
-        Os::clearReadInterceptor();
-
-        // Test delimiter value error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // delimiter is first read
-        this->m_readsToWait = 0;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_DATA_ERROR;
-        // set incorrect read value
-        this->m_readData[0] = 0x11;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_DELIMITER_VALUE,0,0x11);
-
-        Os::clearReadInterceptor();
-
-        // Test record size read error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_readsToWait = 1;
-        // set read status to bad
-        this->m_testReadStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_READ_ERROR;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_RECORD_SIZE,0,Os::File::NOT_OPENED);
-
-        Os::clearReadInterceptor();
-
-        // Test record size read size error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_readsToWait = 1;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_SIZE_ERROR;
-        // set size to size of byte + 1
-        this->m_readSize = sizeof(U32)+1;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_RECORD_SIZE_SIZE,0,sizeof(U32)+1);
-
-        Os::clearReadInterceptor();
-
-        // Test record size value too big error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_readsToWait = 1;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_DATA_ERROR;
-        Fw::ParamBuffer pBuff;
-        pBuff.serialize((U32) (FW_PARAM_BUFFER_MAX_SIZE + sizeof(U32) + 1));
-        memcpy(this->m_readData,pBuff.getBuffAddr(),pBuff.getBuffLength());
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_RECORD_SIZE_VALUE,0,FW_PARAM_BUFFER_MAX_SIZE + sizeof(U32) + 1);
-
-        Os::clearReadInterceptor();
-
-        // Test parameter ID read error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // ID is third read
-        this->m_readsToWait = 2;
-        // set read status to bad
-        this->m_testReadStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_READ_ERROR;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_PARAMETER_ID,0,Os::File::NOT_OPENED);
-
-        Os::clearReadInterceptor();
-
-        // Test parameter ID read size error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_readsToWait = 2;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_SIZE_ERROR;
-        // set size to size of byte + 1
-        this->m_readSize = sizeof(FwPrmIdType)+1;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_PARAMETER_ID_SIZE,0,sizeof(FwPrmIdType)+1);
-
-        Os::clearReadInterceptor();
-
-        // Test parameter value read error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // record is fourth read
-        this->m_readsToWait = 3;
-        // set read status to bad
-        this->m_testReadStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_READ_ERROR;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_PARAMETER_VALUE,0,Os::File::NOT_OPENED);
-
-        Os::clearReadInterceptor();
-
-        // Test parameter value read size error
-
-        this->clearEvents();
-        Os::registerReadInterceptor(this->ReadInterceptor,static_cast<void*>(this));
-        // record is fourth read
-        this->m_readsToWait = 3;
-        // set read status to okay
-        this->m_testReadStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_readTestType = FILE_READ_SIZE_ERROR;
-        // set size to size of U32 + 1, which is nominal populate test value
-        this->m_readSize = sizeof(U32)+1;
-        // call function to read file
-        this->m_impl.readParamFile();
-        // check event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
-        ASSERT_EVENTS_PrmFileReadError(0,PrmDbImpl::PRM_READ_PARAMETER_VALUE_SIZE,0,sizeof(U32)+1);
-
-        Os::clearReadInterceptor();
-
+    void PrmDbImplTester::PrmDbTestFile::setTester(Svc::PrmDbImplTester *tester) {
+        ASSERT_NE(tester, nullptr);
+        s_tester = tester;
     }
 
-    void PrmDbImplTester::runFileWriteError(void) {
+    Os::File::Status PrmDbImplTester::PrmDbTestFile::read(U8 *buffer, FwSignedSizeType &size, Os::File::WaitType wait) {
+        EXPECT_NE(s_tester, nullptr);
+        Os::File::Status status = this->Os::Stub::File::Test::TestFile::read(buffer, size, wait);
+        if (s_tester->m_waits == 0) {
+            switch (s_tester->m_errorType) {
+                case FILE_STATUS_ERROR:
+                    status = s_tester->m_status;
+                    break;
+                case FILE_SIZE_ERROR:
+                    size += 1;
+                    break;
+                case FILE_DATA_ERROR:
+                    buffer[0] += 1;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            s_tester->m_waits -= 1;
+        }
+        return status;
+    }
 
-        // File open error
+    Os::File::Status PrmDbImplTester::PrmDbTestFile::write(const U8* buffer, FwSignedSizeType &size, Os::File::WaitType wait) {
+        EXPECT_NE(s_tester, nullptr);
+        Os::File::Status status = this->Os::Stub::File::Test::TestFile::write(buffer, size, wait);
+        if (s_tester->m_waits == 0) {
+            switch (s_tester->m_errorType) {
+                case FILE_STATUS_ERROR:
+                    status = s_tester->m_status;
+                    break;
+                case FILE_SIZE_ERROR:
+                    size += 1;
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            s_tester->m_waits -= 1;
+        }
+        return status;
+    }
+
+    void PrmDbImplTester::runFileReadError() {
+        // Preconditions setup and test
+        this->runNominalLoadFile();
+
 
         this->clearEvents();
+        // Loop through all size errors testing each
+        Os::Stub::File::Test::StaticData::setNextStatus(Os::File::OP_OK);
+        this->m_errorType = FILE_SIZE_ERROR;
+        for (FwSizeType i = 0; i < 4; i++) {
+            clearEvents();
+            this->m_waits = i;
+            this->m_impl.readParamFile();
+            ASSERT_EVENTS_SIZE(1);
+            switch (i) {
+                case 0:
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::DELIMITER_SIZE, 0, sizeof(U8) + 1);
+                    break;
+                case 1:
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::RECORD_SIZE_SIZE, 0, sizeof(U32) + 1);
+                    break;
+                case 2:
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileReadError(0,PrmReadError::PARAMETER_ID_SIZE, 0, sizeof(FwPrmIdType) + 1);
+                    break;
+                case 3:
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::PARAMETER_VALUE_SIZE, 0, sizeof(U32) + 1);
+                    break;
+                default:
+                    FAIL() << "Reached unknown case";
+            }
+        }
+        // Loop through failure statuses
+        for (FwSizeType i = 0; i < 2; i++) {
+            this->m_errorType = FILE_STATUS_ERROR;
+            // Set various file errors
+            switch (i) {
+                case 0:
+                    this->m_status = Os::File::Status::DOESNT_EXIST;
+                    break;
+                case 1:
+                    this->m_status = Os::File::Status::NOT_OPENED;
+                    break;
+                default:
+                    FAIL() << "Reached unknown case";
+            }
+            // Loop through various field reads
+            for (FwSizeType j = 0; j < 4; j++) {
+                clearEvents();
+                this->m_waits = j;
+                this->m_impl.readParamFile();
+                ASSERT_EVENTS_SIZE(1);
+                switch (j) {
+                    case 0:
+                        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileReadError(0,PrmReadError::DELIMITER, 0, this->m_status);
+                        break;
+                    case 1:
+                        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::RECORD_SIZE, 0, this->m_status);
+                        break;
+                    case 2:
+                        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::PARAMETER_ID, 0, this->m_status);
+                        break;
+                    case 3:
+                        ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::PARAMETER_VALUE, 0, this->m_status);
+                        break;
+                    default:
+                        FAIL() << "Reached unknown case";
+                }
+            }
+        }
+        this->m_errorType = FILE_DATA_ERROR;
+        for (FwSizeType i = 0; i < 2; i++) {
+            clearEvents();
+            this->m_waits = i;
+            this->m_impl.readParamFile();
+            ASSERT_EVENTS_SIZE(1);
+            switch (i) {
+                case 0:
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    // Parameter read error caused by adding one to the expected read
+                    ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::DELIMITER_VALUE, 0, PRMDB_ENTRY_DELIMITER + 1);
+                    break;
+                case 1: {
+                    // Data in this test is corrupted by adding 1 to the first data byte read. Since data is stored in
+                    // big-endian format the highest order byte of the record size (U32) must have one added to it.
+                    // Expected result of '8' inherited from original design of test.
+                    U32 expected_error_value = 8 + (1 << ((sizeof(U32) - 1) * 8));
+                    ASSERT_EVENTS_PrmFileReadError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileReadError(0, PrmReadError::RECORD_SIZE_VALUE, 0, expected_error_value);
+                    break;
+                }
+                default:
+                    FAIL() << "Reached unknown case";
+            }
+        }
+    }
+
+
+    void PrmDbImplTester::runFileWriteError() {
+        // File open error
+        this->clearEvents();
         // register interceptor
-        Os::registerOpenInterceptor(this->OpenInterceptor,static_cast<void*>(this));
-        this->m_testOpenStatus = Os::File::DOESNT_EXIST;
+        Os::Stub::File::Test::StaticData::setWriteResult(m_io_data, sizeof m_io_data);
+        Os::Stub::File::Test::StaticData::setNextStatus(Os::File::DOESNT_EXIST);
         // dispatch command
         this->sendCmd_PRM_SAVE_FILE(0,12);
         Fw::QueuedComponentBase::MsgDispatchStatus stat = this->m_impl.doDispatch();
@@ -579,296 +522,106 @@ void PrmDbImplTester::runFileReadError(void) {
         // check for failed event
         ASSERT_EVENTS_SIZE(1);
         ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_OPEN,0,Os::File::DOESNT_EXIST);
+        ASSERT_EVENTS_PrmFileWriteError(0,PrmWriteError::OPEN,0,Os::File::DOESNT_EXIST);
 
         // check command status
         ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
+        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::CmdResponse::EXECUTION_ERROR);
 
-        Os::clearOpenInterceptor();
-
-        // Test delimiter write error
-
-        // populate file again
         this->runNominalPopulate();
 
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // delimiter is first read
-        this->m_writesToWait = 0;
-        // set read status to bad
-        this->m_testWriteStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_WRITE_ERROR;
+        // Loop through all size errors testing each
+        Os::Stub::File::Test::StaticData::setNextStatus(Os::File::OP_OK);
+        this->m_errorType = FILE_SIZE_ERROR;
+        for (FwSizeType i = 0; i < 4; i++) {
+            clearEvents();
+            this->clearHistory();
+            this->m_waits = i;
+            this->sendCmd_PRM_SAVE_FILE(0,12);
+            stat = this->m_impl.doDispatch();
+            ASSERT_EQ(stat, Fw::QueuedComponentBase::MSG_DISPATCH_OK);
+            ASSERT_EVENTS_SIZE(1);
+            switch (i) {
+                case 0:
+                    ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::DELIMITER_SIZE, 0, sizeof(U8) + 1);
+                    break;
+                case 1:
+                    ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::RECORD_SIZE_SIZE, 0, sizeof(U32) + 1);
+                    break;
+                case 2:
+                    ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::PARAMETER_ID_SIZE, 0, sizeof(FwPrmIdType) + 1);
+                    break;
+                case 3:
+                    ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                    ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::PARAMETER_VALUE_SIZE, 0, sizeof(U32) + 1);
+                    break;
+                default:
+                    FAIL() << "Reached unknown case";
+            }
+            ASSERT_CMD_RESPONSE_SIZE(1);
+            ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::CmdResponse::EXECUTION_ERROR);
+        }
 
-        // send command to save file
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_DELIMITER,0,Os::File::NOT_OPENED);
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-        Os::clearWriteInterceptor();
-
-        // Test delimiter write size error
-
-        // populate file again
-        this->runNominalPopulate();
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // delimiter is first read
-        this->m_writesToWait = 0;
-        // set write status to okay
-        this->m_testWriteStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_SIZE_ERROR;
-        // set size to size of byte + 1
-        this->m_writeSize = sizeof(U8)+1;
-        // send command to save file
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_DELIMITER_SIZE,0,sizeof(U8)+1);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-
-        Os::clearWriteInterceptor();
-
-        // Test record size write error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // size is second write
-        this->m_writesToWait = 1;
-        // set write status to bad
-        this->m_testWriteStatus = Os::File::NOT_OPENED;
-        // set test type to write error
-        this->m_writeTestType = FILE_WRITE_WRITE_ERROR;
-        // send command to save file
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_RECORD_SIZE,0,Os::File::NOT_OPENED);
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-        Os::clearWriteInterceptor();
-
-        // Test record size write size error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_writesToWait = 1;
-        // set read status to okay
-        this->m_testWriteStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_SIZE_ERROR;
-        // set size to size of U32 + 1
-        this->m_writeSize = sizeof(U32)+1;
-        // send command to save file
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_RECORD_SIZE_SIZE,0,sizeof(U32)+1);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-
-        Os::clearWriteInterceptor();
-
-        // Test parameter ID write error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // ID is third read
-        this->m_writesToWait = 2;
-        // set write status to bad
-        this->m_testWriteStatus = Os::File::NOT_OPENED;
-        // set test type to write error
-        this->m_writeTestType = FILE_WRITE_WRITE_ERROR;
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_PARAMETER_ID,0,Os::File::NOT_OPENED);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-
-        Os::clearWriteInterceptor();
-
-        // Test parameter ID write size error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // size is second read
-        this->m_writesToWait = 2;
-        // set read status to okay
-        this->m_testWriteStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_SIZE_ERROR;
-        // set size to size of byte + 1
-        this->m_writeSize = sizeof(FwPrmIdType)+1;
-        // send command to save file
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_PARAMETER_ID_SIZE,0,sizeof(FwPrmIdType)+1);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-
-        Os::clearWriteInterceptor();
-
-        // Test parameter value write error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // record is fourth read
-        this->m_writesToWait = 3;
-        // set read status to bad
-        this->m_testWriteStatus = Os::File::NOT_OPENED;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_WRITE_ERROR;
-        // send write command
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_PARAMETER_VALUE,0,Os::File::NOT_OPENED);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-        Os::clearWriteInterceptor();
-
-        // Test parameter value write size error
-
-        this->clearEvents();
-        this->clearHistory();
-        Os::registerWriteInterceptor(this->WriteInterceptor,static_cast<void*>(this));
-        // record is fourth read
-        this->m_writesToWait = 3;
-        // set read status to okay
-        this->m_testWriteStatus = Os::File::OP_OK;
-        // set test type to read error
-        this->m_writeTestType = FILE_WRITE_SIZE_ERROR;
-        // set size to size of U32 + 1, which is nominal populate test value
-        this->m_writeSize = sizeof(U32)+1;
-        // send command
-        this->sendCmd_PRM_SAVE_FILE(0,12);
-        stat = this->m_impl.doDispatch();
-        EXPECT_EQ(stat,Fw::QueuedComponentBase::MSG_DISPATCH_OK);
-        // check for failed event
-        ASSERT_EVENTS_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
-        ASSERT_EVENTS_PrmFileWriteError(0,PrmDbImpl::PRM_WRITE_PARAMETER_VALUE_SIZE,0,sizeof(U32)+1);
-
-        // check command status
-        ASSERT_CMD_RESPONSE_SIZE(1);
-        ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::COMMAND_EXECUTION_ERROR);
-        Os::clearWriteInterceptor();
-
+        // Loop through failure statuses
+        for (FwSizeType i = 0; i < 2; i++) {
+            this->m_errorType = FILE_STATUS_ERROR;
+            // Set various file errors
+            switch (i) {
+                case 0:
+                    this->m_status = Os::File::Status::DOESNT_EXIST;
+                    break;
+                case 1:
+                    this->m_status = Os::File::Status::NOT_OPENED;
+                    break;
+                default:
+                    FAIL() << "Reached unknown case";
+            }
+            // Loop through various field reads
+            for (FwSizeType j = 0; j < 4; j++) {
+                clearEvents();
+                this->clearHistory();
+                this->m_waits = j;
+                this->sendCmd_PRM_SAVE_FILE(0,12);
+                stat = this->m_impl.doDispatch();
+                ASSERT_EQ(stat, Fw::QueuedComponentBase::MSG_DISPATCH_OK);
+                ASSERT_EVENTS_SIZE(1);
+                switch (j) {
+                    case 0:
+                        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::DELIMITER, 0, this->m_status);
+                        break;
+                    case 1:
+                        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::RECORD_SIZE, 0, this->m_status);
+                        break;
+                    case 2:
+                        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::PARAMETER_ID, 0, this->m_status);
+                        break;
+                    case 3:
+                        ASSERT_EVENTS_PrmFileWriteError_SIZE(1);
+                        ASSERT_EVENTS_PrmFileWriteError(0, PrmWriteError::PARAMETER_VALUE, 0, this->m_status);
+                        break;
+                    default:
+                        FAIL() << "Reached unknown case";
+                }
+                ASSERT_CMD_RESPONSE_SIZE(1);
+                ASSERT_CMD_RESPONSE(0,PrmDbImpl::OPCODE_PRM_SAVE_FILE,12,Fw::CmdResponse::EXECUTION_ERROR);
+            }
+        }
     }
 
     PrmDbImplTester::PrmDbImplTester(Svc::PrmDbImpl& inst) :
             PrmDbGTestBase("testerbase",100), m_impl(inst) {
-
+        PrmDbImplTester::PrmDbTestFile::setTester(this);
     }
 
     PrmDbImplTester::~PrmDbImplTester() {
     }
 
-    bool PrmDbImplTester::OpenInterceptor(Os::File::Status& stat, const char* fileName, Os::File::Mode mode, void* ptr) {
-        EXPECT_TRUE(ptr);
-        PrmDbImplTester* compPtr = static_cast<PrmDbImplTester*>(ptr);
-        stat = compPtr->m_testOpenStatus;
-        return false;
-    }
-
-    bool PrmDbImplTester::ReadInterceptor(Os::File::Status& stat, void * buffer, NATIVE_INT_TYPE &size, bool waitForFull, void* ptr) {
-        EXPECT_TRUE(ptr);
-        PrmDbImplTester* compPtr = static_cast<PrmDbImplTester*>(ptr);
-        if (not compPtr->m_readsToWait--) {
-            // check test scenario
-            switch (compPtr->m_readTestType) {
-                case FILE_READ_READ_ERROR:
-                    stat = compPtr->m_testReadStatus;
-                    break;
-                case FILE_READ_SIZE_ERROR:
-                    size = compPtr->m_readSize;
-                    stat =  Os::File::OP_OK;
-                    break;
-                case FILE_READ_DATA_ERROR:
-                    memcpy(buffer,compPtr->m_readData,size);
-                    stat =  Os::File::OP_OK;
-                    break;
-                default:
-                    EXPECT_TRUE(false);
-                    break;
-            }
-            return false;
-        } else {
-            return true;
-        }
-    }
-
-    bool PrmDbImplTester::WriteInterceptor(Os::File::Status& stat, const void * buffer, NATIVE_INT_TYPE &size, bool waitForFull, void* ptr) {
-        EXPECT_TRUE(ptr);
-        PrmDbImplTester* compPtr = static_cast<PrmDbImplTester*>(ptr);
-        if (not compPtr->m_writesToWait--) {
-            // check test scenario
-            switch (compPtr->m_writeTestType) {
-                case FILE_WRITE_WRITE_ERROR:
-                    stat = compPtr->m_testWriteStatus;
-                    break;
-                case FILE_WRITE_SIZE_ERROR:
-                    size = compPtr->m_writeSize;
-                    stat =  Os::File::OP_OK;
-                    break;
-                default:
-                    EXPECT_TRUE(false);
-                    break;
-            }
-            return false;
-        } else {
-            return true;
-        }
-    }
     void PrmDbImplTester ::
       from_pingOut_handler(
           const NATIVE_INT_TYPE portNum,
@@ -877,5 +630,36 @@ void PrmDbImplTester::runFileReadError(void) {
     {
       this->pushFromPortEntry_pingOut(key);
     }
+} /* namespace Svc */
 
-} /* namespace SvcTest */
+namespace Os {
+
+//! \brief get a delegate for FileInterface that intercepts calls for parameter database testing
+//! \param aligned_new_memory: aligned memory to fill
+//! \param to_copy: pointer to copy-constructor input
+//! \return: pointer to delegate
+FileInterface *FileInterface::getDelegate(FileHandleStorage& aligned_placement_new_memory, const FileInterface* to_copy) {
+    return Os::Delegate::makeDelegate<FileInterface, Svc::PrmDbImplTester::PrmDbTestFile>(
+            aligned_placement_new_memory, to_copy
+    );
+}
+
+//! \brief get a delegate for FileSystemInterface that intercepts calls for stub fileSystem usage
+//! \param aligned_new_memory: aligned memory to fill
+//! \param to_copy: pointer to copy-constructor input
+//! \return: pointer to delegate
+FileSystemInterface *FileSystemInterface::getDelegate(FileSystemHandleStorage& aligned_placement_new_memory) {
+    return Os::Delegate::makeDelegate<FileSystemInterface, Os::Stub::FileSystem::StubFileSystem>(
+        aligned_placement_new_memory
+    );
+}
+
+//! \brief get a delegate for DirectoryInterface that intercepts calls for stub Directory usage
+//! \param aligned_new_memory: aligned memory to fill
+//! \return: pointer to delegate
+DirectoryInterface *DirectoryInterface::getDelegate(DirectoryHandleStorage& aligned_placement_new_memory) {
+    return Os::Delegate::makeDelegate<DirectoryInterface, Os::Stub::Directory::StubDirectory>(
+        aligned_placement_new_memory
+    );
+}
+}

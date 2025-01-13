@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  PingReceiverImpl.hpp
 // \author tim
 // \brief  hpp file for PingReceiver component implementation class
@@ -7,8 +7,8 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef PingReceiver_HPP
 #define PingReceiver_HPP
@@ -33,16 +33,9 @@ namespace Ref {
           const char *const compName /*!< The component name*/
       );
 
-      //! Initialize object PingReceiver
-      //!
-      void init(
-          const NATIVE_INT_TYPE queueDepth, /*!< The queue depth*/
-          const NATIVE_INT_TYPE instance = 0 /*!< The instance number*/
-      );
-
       //! Destroy object PingReceiver
       //!
-      ~PingReceiverComponentImpl(void);
+      ~PingReceiverComponentImpl();
 
     PRIVATE:
 

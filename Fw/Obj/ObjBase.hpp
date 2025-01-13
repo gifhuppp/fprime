@@ -13,14 +13,16 @@
 #ifndef FW_OBJ_BASE_HPP
 #define FW_OBJ_BASE_HPP
 
-#include <Fw/Types/BasicTypes.hpp>
 #include <FpConfig.hpp>
+#if FW_OBJECT_NAMES == 1
+#include <Fw/Types/ObjectName.hpp>
+#endif
 
 namespace Fw {
-    
+
 #if FW_OBJECT_REGISTRATION == 1
     class ObjRegistry; //!< forward declaration for object registry
-#endif    
+#endif
 
     //! \class ObjBase
     //! \brief Brief class description
@@ -39,7 +41,7 @@ namespace Fw {
             //!  This function returns a pointer to the name of the object
             //!
             //!  \return object name
-            const char* getObjName(void); //!< Returns object name
+            const char* getObjName(); //!< Returns object name
 
             //!  \brief Sets the object name
             //!
@@ -60,7 +62,7 @@ namespace Fw {
             //!  \param str destination buffer where string description is placed
             //!  \param size destination buffer size (including terminator). String should be terminated
             virtual void toString(char* str, NATIVE_INT_TYPE size); //!< virtual method to get description of object
-#endif // FW_OBJECT_TO_STRING           
+#endif // FW_OBJECT_TO_STRING
 #endif // FW_OBJECT_NAMES
 
 #if FW_OBJECT_REGISTRATION == 1
@@ -75,12 +77,12 @@ namespace Fw {
             //!
             //!  \param reg Instance of registry to be stored.
             static void setObjRegistry(ObjRegistry* reg); //!< sets the object registry, if desired
-#endif            
-            
+#endif
+
         protected:
-            
+
 #if FW_OBJECT_NAMES == 1
-            char m_objName[FW_OBJ_NAME_MAX_SIZE]; //!< stores object name
+            Fw::ObjectName m_objName; //!< stores object name
 #endif
 
             //!  \brief ObjBase constructor
@@ -102,11 +104,11 @@ namespace Fw {
             //!  Initializes the object. For the base class, it calls
             //!  the object registry if registered by setObjRegistry()
             //!
-            void init(void); //!<initialization function that all objects need to implement. Allows static constructors.
+            void init(); //!<initialization function that all objects need to implement. Allows static constructors.
         private:
 #if FW_OBJECT_REGISTRATION == 1
             static ObjRegistry* s_objRegistry; //!< static pointer to object registry. Optionally populated.
-#endif            
+#endif
     }; // ObjBase
 
 #if FW_OBJECT_REGISTRATION == 1

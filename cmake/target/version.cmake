@@ -1,29 +1,39 @@
-
-set (GEN_VERSION_FILE_CMD ${CMAKE_CURRENT_LIST_DIR}/version/generate_version_header.py "${CMAKE_BINARY_DIR}/version.hpp")
-
-function(add_global_target TARGET_NAME)
-
-    add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version.hpp" __PHONY__ COMMAND ${CMAKE_COMMAND} -E chdir ${FPRIME_PROJECT_ROOT} ${GEN_VERSION_FILE_CMD})
-    add_custom_target(${TARGET_NAME} ALL DEPENDS "${CMAKE_BINARY_DIR}/version.hpp" __PHONY__)
-
-endfunction(add_global_target)
-
 ####
-# Dict function `add_module_target`:
+# cmake/target/version.cmake:
 #
-# Adds a module-by-module target for producing dictionaries. These dictionaries take the outputs
-# from the autocoder and copies them into the correct directory. These outputs are then handled as
-# part of the global `dict` target above.
-#
-#
-# - **MODULE_NAME:** name of the module
-# - **TARGET_NAME:** name of target to produce
-# - **GLOBAL_TARGET_NAME:** name of produced global target
-# - **AC_INPUTS:** list of autocoder inputs
-# - **SOURCE_FILES:** list of source file inputs
-# - **AC_OUTPUTS:** list of autocoder outputs
-# - **MOD_DEPS:** module dependencies of the target
+# A basic versioning target which will produce the version files.
 ####
-function(add_module_target MODULE_NAME TARGET_NAME GLOBAL_TARGET_NAME AC_INPUTS SOURCE_FILES AC_OUTPUTS MOD_DEPS)
+set(FPRIME_VERSION_INFO_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/version/generate_version_info.py")
 
-endfunction(add_module_target)
+function(version_add_global_target TARGET)
+    set(OUTPUT_DIR "${CMAKE_BINARY_DIR}/versions")
+    set(OUTPUT_HPP "${OUTPUT_DIR}/version.hpp")
+    set(OUTPUT_CPP "${OUTPUT_DIR}/version.cpp")
+    set(OUTPUT_JSON "${OUTPUT_DIR}/version.json")
+    file(MAKE_DIRECTORY ${OUTPUT_DIR})
+    # Add check argument when requested
+    set(OPTIONAL_CHECK_ARG)
+    string(REGEX REPLACE ";" ":"  FPRIME_LIBRARY_LOCATIONS_CSV "${FPRIME_LIBRARY_LOCATIONS}")
+    if (FPRIME_CHECK_FRAMEWORK_VERSION)
+        set(OPTIONAL_CHECK_ARG "--check")
+    endif()
+    add_custom_command(OUTPUT "${OUTPUT_HPP}" "${OUTPUT_CPP}" "${OUTPUT_JSON}"
+        COMMAND "${CMAKE_COMMAND}" 
+            -E env "PYTHONPATH=${PYTHONPATH}:${FPRIME_FRAMEWORK_PATH}/Autocoders/Python/src" 
+                    "FPRIME_PROJECT_ROOT=${FPRIME_PROJECT_ROOT}"
+                    "FPRIME_FRAMEWORK_PATH=${FPRIME_FRAMEWORK_PATH}"
+                    "FPRIME_LIBRARY_LOCATIONS=${FPRIME_LIBRARY_LOCATIONS_CSV}"
+            "${FPRIME_VERSION_INFO_SCRIPT}" "${OUTPUT_DIR}" "${OPTIONAL_CHECK_ARG}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUTPUT_HPP}.tmp" "${OUTPUT_HPP}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUTPUT_CPP}.tmp" "${OUTPUT_CPP}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${OUTPUT_JSON}.tmp" "${OUTPUT_JSON}"
+        WORKING_DIRECTORY "${FPRIME_PROJECT_ROOT}"
+    )
+    add_library("${TARGET}" "${OUTPUT_CPP}")
+endfunction()
+
+function(version_add_deployment_target MODULE TARGET SOURCES DEPENDENCIES FULL_DEPENDENCIES)
+endfunction()
+
+function(version_add_module_target MODULE_NAME TARGET_NAME SOURCE_FILES DEPENDENCIES)
+endfunction(version_add_module_target)

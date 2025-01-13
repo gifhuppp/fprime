@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  AMPCS.hpp
 // \author Rob bocchino
 // \brief  AMPCS-specific tests
@@ -7,19 +7,20 @@
 // Copyright (C) 2009-2018 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
+// ======================================================================
 
 #ifndef Svc_AMPCS_HPP
 #define Svc_AMPCS_HPP
 
-#include "Svc/CmdSequencer/test/ut/Tester.hpp"
+#include "CmdSequencerTester.hpp"
 
 namespace Svc {
 
   namespace AMPCS {
 
     //! Test sequencer behavior with no input files
-    class Tester :
-      public Svc::Tester
+    class CmdSequencerTester :
+      public Svc::CmdSequencerTester
     {
 
       public:
@@ -28,20 +29,20 @@ namespace Svc {
         // Constructors
         // ----------------------------------------------------------------------
 
-        //! Construct object Tester
-        Tester(void);
+        //! Construct object CmdSequencerTester
+        CmdSequencerTester();
 
       public:
 
-        // ---------------------------------------------------------------------- 
+        // ----------------------------------------------------------------------
         // Tests
-        // ---------------------------------------------------------------------- 
+        // ----------------------------------------------------------------------
 
         //! Missing CRC
-        void MissingCRC(void);
+        void MissingCRC();
 
         //! Missing file
-        void MissingFile(void);
+        void MissingFile();
 
     };
 

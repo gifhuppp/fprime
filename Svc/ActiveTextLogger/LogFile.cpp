@@ -8,8 +8,9 @@
 #include <Os/File.hpp>
 #include <Os/FileSystem.hpp>
 #include <limits>
-#include <string.h>
-#include <stdio.h>
+#include <cstring>
+#include <cstdio>
+#include <Fw/Types/StringUtils.hpp>
 
 
 namespace Svc {
@@ -39,7 +40,7 @@ namespace Svc {
     bool LogFile::write_to_log(const char *const buf, const U32 size)
     {
 
-        FW_ASSERT(buf != NULL);
+        FW_ASSERT(buf != nullptr);
 
         bool status = true;
 
@@ -60,8 +61,8 @@ namespace Svc {
             // Won't exceed max size, so write to file:
             else {
 
-                NATIVE_INT_TYPE writeSize = static_cast<NATIVE_INT_TYPE>(size);
-                Os::File::Status stat = this->m_file.write(buf,writeSize,true);
+                FwSignedSizeType writeSize = size;
+                Os::File::Status stat = this->m_file.write(reinterpret_cast<const U8*>(buf),writeSize,Os::File::WAIT);
 
                 // Assert that we are not trying to write to a file we never opened:
                 FW_ASSERT(stat != Os::File::NOT_OPENED);
@@ -69,7 +70,7 @@ namespace Svc {
                 // Only return a good status if the write was valid
                 status = (writeSize > 0);
 
-                this->m_currentFileSize += writeSize;
+                this->m_currentFileSize += static_cast<U32>(writeSize);
             }
         }
 
@@ -79,7 +80,7 @@ namespace Svc {
 
     bool LogFile::set_log_file(const char* fileName, const U32 maxSize, const U32 maxBackups)
     {
-        FW_ASSERT(fileName != NULL);
+        FW_ASSERT(fileName != nullptr);
 
         // If there is already a previously open file then close it:
         if (this->m_openFile) {
@@ -88,13 +89,13 @@ namespace Svc {
         }
 
         // If file name is too large, return failure:
-        U32 fileNameSize = strnlen(fileName, Fw::String::STRING_SIZE);
+        FwSizeType fileNameSize = Fw::StringUtils::string_length(fileName, static_cast<FwSizeType>(Fw::String::STRING_SIZE));
         if (fileNameSize == Fw::String::STRING_SIZE) {
             return false;
         }
 
         U32 suffix = 0;
-        U64 tmp;
+        FwSignedSizeType tmp;
         char fileNameFinal[Fw::String::STRING_SIZE];
         (void) strncpy(fileNameFinal,fileName,
                        Fw::String::STRING_SIZE);
@@ -118,7 +119,7 @@ namespace Svc {
             }
 
             NATIVE_INT_TYPE stat = snprintf(fileNameFinal,Fw::String::STRING_SIZE,
-                                            "%s%d",fileName,suffix);
+                                            "%s%" PRIu32,fileName,suffix);
 
             // If there was error, then just fail:
             if (stat <= 0) {
@@ -139,7 +140,7 @@ namespace Svc {
         }
 
         // Open the file (using CREATE so that it truncates an already existing file):
-        Os::File::Status stat = this->m_file.open(fileNameFinal, Os::File::OPEN_CREATE, false);
+        Os::File::Status stat = this->m_file.open(fileNameFinal, Os::File::OPEN_CREATE, Os::File::OverwriteType::OVERWRITE);
 
         // Bad status when trying to open the file:
         if (stat != Os::File::OP_OK) {

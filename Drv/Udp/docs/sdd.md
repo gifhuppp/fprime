@@ -1,5 +1,5 @@
-\page DrvUdp Udp  Component
-# Drv::Udp Udp Component
+\page DrvUdp Drv::Udp Component
+# Drv::Udp UDP Component
 
 The UDP client component bridges the byte stream driver model interface to a remote UDP port to which this udp component
 sends/receives bytes. It implements the callback formation (shown below) using a thread to receive data and producing
@@ -20,7 +20,7 @@ These responses are an enumeration whose values are described in the following t
 | Drv::SEND_RETRY | Send should be retried, but a subsequent send should return SEND_OK. |
 | Drv::SEND_ERROR | Send produced an error, future sends likely to fail. |
 
-This data is immediately sent out to the remote tcp server with a configured send timeout. See Usage described below.
+This data is immediately sent out to the remote UDP server with a configured send timeout. See Usage described below.
 
 **Callback Formation**
 
@@ -37,8 +37,8 @@ This status is an enumeration whose values are described in the following table:
 
 ## Usage
 
-The Drv::TcpClientComponentImpl must be configured with the address of the remote connection, and the socket must be
-open to begin. Usually, the user runs the Drv::TcpClientComponentImpl engaging its read thread, which will automatically
+The Drv::UdpComponentImpl must be configured with the address of the remote connection, and the socket must be
+open to begin. Usually, the user runs the Drv::UdpComponentImpl engaging its read thread, which will automatically
 open the  connection. The component is passive and has no commands meaning users should `init`,
 `configureSend`/`configureRecv`, and `startSocketTask`. Upon shutdown, the `stopSocketThread` and `joinSocketThread`
 methods should be called to ensure proper resource deallocation. This typical usage is shown in the C++ snippet below.
@@ -47,13 +47,13 @@ Since UDP support single or bidirectional communication, configuring each direct
 methods `configureSend` and `configureRecv`. The user is not required to call both.
 
 ```c++
-Drv::TcpClientComponentImpl comm = Drv::TcpClientComponentImpl("UDp Client");
+Drv::UdpComponentImpl comm = Drv::UdpComponentImpl("UDP Client");
 
 bool constructApp(bool dump, U32 port_number, char* hostname) {
     ...
     comm.init(0);
     ...
-    if (hostname != NULL && port_number != 0) {
+    if (hostname != nullptr && port_number != 0) {
         Os::TaskString name("ReceiveTask");
         comm.configureSend(hostname, port_number);
         comm.configureRecv(hostname, port_number);
@@ -62,10 +62,10 @@ bool constructApp(bool dump, U32 port_number, char* hostname) {
     }
 }
 
-void exitTasks(void) {
+void exitTasks() {
     ...
     comm.stopSocketTask();
-    (void) comm.joinSocketTask(NULL);
+    (void) comm.joinSocketTask(nullptr);
 }
 ```
 ## Class Diagram

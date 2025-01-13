@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  FileManager.hpp
 // \author bocchino
 // \brief  hpp file for FileManager component implementation class
@@ -7,8 +7,8 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef Svc_FileManager_HPP
 #define Svc_FileManager_HPP
@@ -34,21 +34,14 @@ namespace Svc {
           const char *const compName //!< The component name
       );
 
-      //! Initialize object FileManager
-      //!
-      void init(
-          const NATIVE_INT_TYPE queueDepth, //!< The queue depth
-          const NATIVE_INT_TYPE instance //!< The instance number
-      );
-
       //! Destroy object FileManager
       //!
-      ~FileManager(void);
+      ~FileManager();
 
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Command handler implementations 
+      // Command handler implementations
       // ----------------------------------------------------------------------
 
       //! Implementation for CreateDirectory command handler
@@ -64,7 +57,8 @@ namespace Svc {
       void RemoveFile_cmdHandler(
           const FwOpcodeType opCode, //!< The opcode
           const U32 cmdSeq, //!< The command sequence number
-          const Fw::CmdStringArg& fileName //!< The file to remove
+          const Fw::CmdStringArg& fileName, //!< The file to remove
+          const bool ignoreErrors //!< Ignore missing files
       );
 
       //! Implementation for MoveFile command handler
@@ -102,6 +96,14 @@ namespace Svc {
           const Fw::CmdStringArg& target //! The name of the file to append to
       );
 
+      //! Implementation for FileSize command handler
+      //!
+      void FileSize_cmdHandler(
+          const FwOpcodeType opCode, //!< The opcode
+          const U32 cmdSeq, //!< The command sequence number
+          const Fw::CmdStringArg& fileName //!< The file to get the size of
+      );
+
       //! Handler implementation for pingIn
       //!
       void pingIn_handler(
@@ -112,7 +114,7 @@ namespace Svc {
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Helper methods 
+      // Helper methods
       // ----------------------------------------------------------------------
 
       //! A system command with no arguments
