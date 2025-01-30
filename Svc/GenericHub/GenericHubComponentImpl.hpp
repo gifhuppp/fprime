@@ -27,6 +27,8 @@ class GenericHubComponentImpl : public GenericHubComponentBase {
     enum HubType {
         HUB_TYPE_PORT,    //!< Port type transmission
         HUB_TYPE_BUFFER,  //!< Buffer type transmission
+        HUB_TYPE_EVENT,   //!< Event transmission
+        HUB_TYPE_CHANNEL, //!< Telemetry channel type
         HUB_TYPE_MAX
     };
 
@@ -40,14 +42,9 @@ class GenericHubComponentImpl : public GenericHubComponentBase {
     GenericHubComponentImpl(const char* const compName /*!< The component name*/
     );
 
-    //! Initialize object GenericHub
-    //!
-    void init(const NATIVE_INT_TYPE instance = 0 /*!< The instance number*/
-    );
-
     //! Destroy object GenericHub
     //!
-    ~GenericHubComponentImpl(void);
+    ~GenericHubComponentImpl();
 
   PRIVATE:
     // ----------------------------------------------------------------------
@@ -63,6 +60,23 @@ class GenericHubComponentImpl : public GenericHubComponentBase {
     //!
     void dataIn_handler(const NATIVE_INT_TYPE portNum, /*!< The port number*/
                         Fw::Buffer& fwBuffer);
+
+    //! Handler implementation for LogRecv
+    //!
+    void LogRecv_handler(const NATIVE_INT_TYPE portNum,   /*!< The port number*/
+                         FwEventIdType id,                /*!< Log ID */
+                         Fw::Time& timeTag,               /*!< Time Tag */
+                         const Fw::LogSeverity& severity, /*!< The severity argument */
+                         Fw::LogBuffer& args              /*!< Buffer containing serialized log entry */
+    );
+
+    //! Handler implementation for TlmRecv
+    //!
+    void TlmRecv_handler(const NATIVE_INT_TYPE portNum, /*!< The port number*/
+                         FwChanIdType id,               /*!< Telemetry Channel ID */
+                         Fw::Time& timeTag,             /*!< Time Tag */
+                         Fw::TlmBuffer& val             /*!< Buffer containing serialized telemetry value */
+    );
 
     // ----------------------------------------------------------------------
     // Handler implementations for user-defined serial input ports

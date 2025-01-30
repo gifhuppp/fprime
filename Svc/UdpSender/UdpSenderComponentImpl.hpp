@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  UdpSenderImpl.hpp
 // \author tcanham
 // \brief  hpp file for UdpSender component implementation class
@@ -7,8 +7,8 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef UdpSender_HPP
 #define UdpSender_HPP
@@ -37,18 +37,9 @@ namespace Svc {
           const char *const compName /*!< The component name*/
       );
 
-      //! Initialize object UdpSender
-      //!
-      void init(
-          const NATIVE_INT_TYPE queueDepth, /*!< The queue depth*/
-          const NATIVE_INT_TYPE msgSize, /*!< The message size*/
-          const NATIVE_INT_TYPE instance = 0 /*!< The instance number*/
-      );
-
-
       //! Destroy object UdpSender
       //!
-      ~UdpSenderComponentImpl(void);
+      ~UdpSenderComponentImpl();
 
       //! Open the connection
       //!
@@ -67,7 +58,7 @@ namespace Svc {
       //!
       void Sched_handler(
           const NATIVE_INT_TYPE portNum, /*!< The port number*/
-          NATIVE_UINT_TYPE context /*!< The call order*/
+          U32 context /*!< The call order*/
       );
 
     PRIVATE:
@@ -97,18 +88,18 @@ namespace Svc {
         public:
 
 #ifdef BUILD_UT
-          void operator=(const UdpSerialBuffer& other);
+          UdpSerialBuffer& operator=(const UdpSerialBuffer& other);
           UdpSerialBuffer(const Fw::SerializeBufferBase& other);
           UdpSerialBuffer(const UdpSerialBuffer& other);
           UdpSerialBuffer();
 #endif
 
-          NATIVE_UINT_TYPE getBuffCapacity(void) const {
+          NATIVE_UINT_TYPE getBuffCapacity() const {
             return sizeof(m_buff);
           }
 
           // Get the max number of bytes that can be serialized
-          NATIVE_UINT_TYPE getBuffSerLeft(void) const {
+          NATIVE_UINT_TYPE getBuffSerLeft() const {
 
             const NATIVE_UINT_TYPE size  = getBuffCapacity();
             const NATIVE_UINT_TYPE loc = getBuffLength();
@@ -121,11 +112,11 @@ namespace Svc {
             }
           }
 
-          U8* getBuffAddr(void) {
+          U8* getBuffAddr() {
             return m_buff;
           }
 
-          const U8* getBuffAddr(void) const {
+          const U8* getBuffAddr() const {
             return m_buff;
           }
 

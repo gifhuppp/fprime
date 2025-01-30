@@ -10,10 +10,9 @@
 //
 // ======================================================================
 
-#include <math.h>  //isnan()
+#include <cmath>  //isnan()
 #include <Svc/SystemResources/SystemResources.hpp>
-#include <version.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 
 namespace Svc {
 
@@ -34,15 +33,11 @@ SystemResources ::SystemResources(const char* const compName)
         m_cpu_prev[i].total = 0;
     }
 
-    if (Os::SystemResources::getCpuCount(m_cpu_count) == Os::SystemResources::SYSTEM_RESOURCES_ERROR) {
+    if (Os::Cpu::getCount(m_cpu_count) == Os::Generic::ERROR) {
         m_cpu_count = 0;
     }
 
     m_cpu_count = (m_cpu_count >= CPU_COUNT) ? CPU_COUNT : m_cpu_count;
-}
-
-void SystemResources ::init(const NATIVE_INT_TYPE instance) {
-    SystemResourcesComponentBase::init(instance);
 
     m_cpu_tlm_functions[0] = &Svc::SystemResources::tlmWrite_CPU_00;
     m_cpu_tlm_functions[1] = &Svc::SystemResources::tlmWrite_CPU_01;
@@ -68,12 +63,11 @@ SystemResources ::~SystemResources() {}
 // Handler implementations for user-defined typed input ports
 // ----------------------------------------------------------------------
 
-void SystemResources ::run_handler(const NATIVE_INT_TYPE portNum, NATIVE_UINT_TYPE tick_time_hz) {
+void SystemResources ::run_handler(const NATIVE_INT_TYPE portNum, U32 tick_time_hz) {
     if (m_enable) {
         Cpu();
         Mem();
         PhysMem();
-        Version();
     }
 }
 
@@ -84,25 +78,18 @@ void SystemResources ::run_handler(const NATIVE_INT_TYPE portNum, NATIVE_UINT_TY
 void SystemResources ::ENABLE_cmdHandler(const FwOpcodeType opCode,
                                          const U32 cmdSeq,
                                          SystemResourceEnabled enable) {
-    m_enable = (enable == SYS_RES_ENABLED);
-    this->cmdResponse_out(opCode, cmdSeq, Fw::COMMAND_OK);
+    m_enable = (enable == SystemResourceEnabled::ENABLED);
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
-void SystemResources ::VERSION_cmdHandler(const FwOpcodeType opCode, const U32 cmdSeq) {
-    Fw::LogStringArg version_string(VERSION);
-
-    this->log_ACTIVITY_LO_VERSION(version_string);
-    this->cmdResponse_out(opCode, cmdSeq, Fw::COMMAND_OK);
-}
-
-F32 SystemResources::compCpuUtil(Os::SystemResources::CpuTicks current, Os::SystemResources::CpuTicks previous) {
+F32 SystemResources::compCpuUtil(Os::Cpu::Ticks current, Os::Cpu::Ticks previous) {
     F32 util = 100.0f;
     // Prevent divide by zero on fast-sample
     if ((current.total - previous.total) != 0) {
         // Compute CPU % Utilization
         util = (static_cast<F32>(current.used - previous.used) / static_cast<F32>(current.total - previous.total)) *
                100.0f;
-        util = isnan(util) ? 100.0f : util;
+        util = std::isnan(util) ? 100.0f : util;
     }
     return util;
 }
@@ -112,9 +99,9 @@ void SystemResources::Cpu() {
     F32 cpuAvg = 0;
 
     for (U32 i = 0; i < m_cpu_count && i < CPU_COUNT; i++) {
-        Os::SystemResources::SystemResourcesStatus status = Os::SystemResources::getCpuTicks(m_cpu[i], i);
+        Os::Cpu::Status status = Os::Cpu::getTicks(m_cpu[i], i);
         // Best-effort calculations and telemetry
-        if (status == Os::SystemResources::SYSTEM_RESOURCES_OK) {
+        if (status == Os::Generic::OP_OK) {
             F32 cpuUtil = compCpuUtil(m_cpu[i], m_cpu_prev[i]);
             cpuAvg += cpuUtil;
 
@@ -128,22 +115,20 @@ void SystemResources::Cpu() {
         }
     }
 
-    cpuAvg = (count == 0) ? 0.0f : (cpuAvg / count);
+    cpuAvg = (count == 0) ? 0.0f : (cpuAvg / static_cast<F32>(count));
     this->tlmWrite_CPU(cpuAvg);
 }
 
 void SystemResources::Mem() {
-    Os::SystemResources::SystemResourcesStatus status;
-
-    if ((status = Os::SystemResources::getMemUtil(m_mem)) == Os::SystemResources::SYSTEM_RESOURCES_OK) {
+    if (Os::Memory::getUsage(m_mem) == Os::Generic::OP_OK) {
         this->tlmWrite_MEMORY_TOTAL(m_mem.total / 1024);
         this->tlmWrite_MEMORY_USED(m_mem.used / 1024);
     }
 }
 
 void SystemResources::PhysMem() {
-    U64 total = 0;
-    U64 free = 0;
+    FwSizeType total = 0;
+    FwSizeType free = 0;
 
     if (Os::FileSystem::getFreeSpace("/", total, free) == Os::FileSystem::OP_OK) {
         this->tlmWrite_NON_VOLATILE_FREE(free / 1024);
@@ -151,8 +136,4 @@ void SystemResources::PhysMem() {
     }
 }
 
-void SystemResources::Version() {
-    Fw::TlmString version_string(VERSION);
-    this->tlmWrite_VERSION(version_string);
-}
 }  // end namespace Svc

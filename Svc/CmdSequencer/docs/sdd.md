@@ -1,4 +1,3 @@
-\page SvcCmdSequencerComponent Svc::CmdSequencer Component
 # Svc::CmdSequencer Component
 
 ## 1 Introduction
@@ -43,7 +42,7 @@ pingIn|Svc::Ping|async input|Input ping call
 pingOut|Svc::Ping|output|Reply for ping
 schedIn|Svc::Sched|async input|Scheduler input - timed commands will be checked
 comCmdOut|Fw::Com|output|Sends command buffers for each command in sequence
-cmdResponseIn|Fw::CmdResponse|asyc input|Received status of last dispatched command
+cmdResponseIn|Fw::CmdResponse|async input|Received status of last dispatched command
 seqRunIn|Svc::CmdSeqIn|async input|Receives requests for running sequences from other components
 seqDone|Fw::CmdResponse|output|outputs status of sequence run; meant to be used with `seqRunIn`
 
@@ -236,7 +235,7 @@ A utility is provided that will convert a text file listing of commands and thei
 
 It can be run by invoking:
 
-`Gse/bin/run_tinyseqgen.sh <input text file>`
+`fprime-seqgen --help`
 
 The syntax of the file is as follows:
 
@@ -296,7 +295,7 @@ where:
 
 Note that the time is encoded in UTC with an epoch of 1/1/1970.
 
-An example can be seen in [Gse/bin/simple_sequence.seq](../../../Gse/bin/simple_sequence.seq)
+An example can be seen in the F´ GDS repository under `examples/`: https://github.com/fprime-community/fprime-gds/tree/devel/examples
 
 ### 3.4 Component State
 
@@ -312,11 +311,11 @@ TBD
 
 ## 4 Module Checklists
 
-[Design Checklist](Checklist_Design.xlsx)
-
-[Code Checklist](Checklist_Code.xlsx)
-
-[Unit Test Checklist](Checklist_Unit_Test.xls)
+Checklist |
+-------- |
+[Design](Checklist_Design.xlsx) |
+[Code](Checklist_Code.xlsx) |
+[Unit Test](Checklist_Unit_Test.xls) |
 
 ## 5 Unit Testing
 

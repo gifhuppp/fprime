@@ -1,9 +1,8 @@
-\page RefRecvBuffAppComponent Ref::RecvBuffApp Component
 # Ref::RecvBuffApp Component
 
 ## 1. Introduction
 
-The `Ref::RecvBuffApp` is a demonstration component that receives data buffers from `Ref::SendBuffApp` [HTML](../../SendBuffApp/docs/sdd.html) [MD](../../SendBuffApp/docs/sdd.md)
+The `Ref::RecvBuffApp` is a demonstration component that receives data buffers from `Ref::SendBuffApp` [SDD](../../SendBuffApp/docs/sdd.md)
 
 ## 2. Requirements
 
@@ -25,8 +24,6 @@ The `Ref::RecvBuffApp` component has the following component diagram:
 ![`Ref::RecvBuffApp` Diagram](img/RecvBuffBDD.jpg "Ref::RecvBuffApps")
 
 ## 4. Dictionaries
-
-Dictionaries: [HTML](RecvBuff.html) [MD](RecvBuff.md)
 
 ## 5. Module Checklists
 

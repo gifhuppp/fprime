@@ -1,12 +1,13 @@
-#include <Tester.hpp>
+#include <Fw/Types/StringUtils.hpp>
+#include <LinuxI2cDriverTester.hpp>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 TEST(TestNominal,Nominal) {
 
-    Drv::Tester tester;
+    Drv::LinuxI2cDriverTester tester;
 
 }
 
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
                 addr = strtoul(optarg,0,0);
                 break;
             case 'd':
-                strcpy(device,optarg);
+                (void) Fw::StringUtils::string_copy(device, optarg, sizeof(device));
                 break;
             default:
                 printf("test_ut %s\n",argv[0],help);
@@ -46,7 +47,7 @@ int main(int argc, char* argv[]) {
         printf("Data: %s 0x%02X\n",argv[i],data[optind-i]);
     }
 
-    Drv::Tester tester;
+    Drv::LinuxI2cDriverTester tester;
     tester.open(device);
 
     tester.sendData(addr,data,argc-optind);

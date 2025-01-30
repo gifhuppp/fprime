@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  FatalHandlerImpl.hpp
 // \author tcanham
 // \brief  hpp file for FatalHandler component implementation class
@@ -7,8 +7,8 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef FatalHandler_HPP
 #define FatalHandler_HPP
@@ -33,15 +33,9 @@ namespace Svc {
           const char *const compName /*!< The component name*/
       );
 
-      //! Initialize object FatalHandler
-      //!
-      void init(
-          const NATIVE_INT_TYPE instance = 0 /*!< The instance number*/
-      );
-
       //! Destroy object FatalHandler
       //!
-      ~FatalHandlerComponentImpl(void);
+      ~FatalHandlerComponentImpl();
 
     PRIVATE:
 

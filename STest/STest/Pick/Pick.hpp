@@ -1,10 +1,10 @@
-// ====================================================================== 
+// ======================================================================
 // \title  Pick.hpp
-// \author AUTO-GENERATED: DO NOT EDIT
+// \author bocchino
 // \brief  Pick interface
 //
 // \copyright
-// Copyright (C) 2019 California Institute of Technology.
+// Copyright (C) 2022 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
 // ======================================================================
@@ -12,19 +12,17 @@
 #ifndef STEST_PICK_HPP
 #define STEST_PICK_HPP
 
-#include <assert.h>
-#include <cstddef>
-#include <limits.h>
-
 #include "STest/types/basic_types.h"
-
+#ifdef STEST_MODE_spin
+#include "STest/Pick/Pick_spin.hpp"
+#endif
 
 namespace STest {
 
   namespace Pick {
 
     //! Pick a double value in the interval [0, 1]
-    double inUnitInterval(void);
+    double inUnitInterval();
 
     //! Return a U32 value in the range given by [start, start + length - 1].
     //! For example, startLength(5, 3) returns a number
@@ -46,7 +44,7 @@ namespace STest {
 
     //! Return an arbitrary U32 value
     //! \return The U32 value
-    U32 any(void);
+    U32 any();
 
   }
 

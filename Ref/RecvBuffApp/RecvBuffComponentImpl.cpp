@@ -1,9 +1,9 @@
 #include <Ref/RecvBuffApp/RecvBuffComponentImpl.hpp>
-#include <Fw/Types/BasicTypes.hpp>
-#include <Os/Log.hpp>
+#include <FpConfig.hpp>
+#include <Os/Console.hpp>
 #include <Fw/Types/Assert.hpp>
 
-#include <stdio.h>
+#include <cstdio>
 
 #define DEBUG_LVL 1
 
@@ -16,15 +16,10 @@ namespace Ref {
         this->m_sensor2 = 10.0;
         this->m_stats.setBuffRecv(0);
         this->m_stats.setBuffErr(0);
-        this->m_stats.setPacketStatus(PACKET_STATE_NO_PACKETS);
+        this->m_stats.setPacketStatus(PacketRecvStatus::PACKET_STATE_NO_PACKETS);
     }
 
-
-    void RecvBuffImpl::init(void) {
-        RecvBuffComponentBase::init();
-    }
-    
-    RecvBuffImpl::~RecvBuffImpl(void) {
+    RecvBuffImpl::~RecvBuffImpl() {
 
     }
 
@@ -49,7 +44,7 @@ namespace Ref {
         // if first packet, send event
         if (not this->m_firstBuffReceived) {
             this->log_ACTIVITY_LO_FirstPacketReceived(id);
-            this->m_stats.setPacketStatus(PACKET_STATE_OK);
+            this->m_stats.setPacketStatus(PacketRecvStatus::PACKET_STATE_OK);
             this->m_firstBuffReceived = true;
         }
 
@@ -65,7 +60,7 @@ namespace Ref {
             // send error event
             this->log_WARNING_HI_PacketChecksumError(id);
             // update stats
-            this->m_stats.setPacketStatus(PACKET_STATE_ERRORS);
+            this->m_stats.setPacketStatus(PacketRecvStatus::PACKET_STATE_ERRORS);
         }
         // update sensor values
         this->m_sensor1 += 5.0;
@@ -75,16 +70,6 @@ namespace Ref {
         this->tlmWrite_Sensor2(this->m_sensor2);
         this->tlmWrite_PktState(this->m_stats);
 
-    }
-
-    void RecvBuffImpl::toString(char* str, I32 buffer_size) {
-#if FW_OBJECT_NAMES == 1    
-        (void)snprintf(str, buffer_size, "RecvBuffImpl: %s: ATM recd count: %d", this->m_objName,
-                        (int) this->m_buffsReceived);
-#else
-        (void)snprintf(str, buffer_size, "RecvBuffImpl: ATM recd count: %d",
-                        (int) this->m_buffsReceived);
-#endif
     }
 
     void RecvBuffImpl::parameterUpdated(FwPrmIdType id) {

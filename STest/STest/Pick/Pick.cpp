@@ -1,10 +1,10 @@
-// ====================================================================== 
+// ======================================================================
 // \title  Pick.cpp
-// \author AUTO-GENERATED: DO NOT EDIT
+// \author bocchino
 // \brief  Pick implementation
 //
 // \copyright
-// Copyright (C) 2019 California Institute of Technology.
+// Copyright (C) 2022 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
 // ======================================================================
@@ -15,7 +15,7 @@ namespace STest {
 
   namespace Pick {
 
-    U32 any(void) {
+    U32 any() {
       return lowerUpper(0, 0xFFFFFFFFU);
     }
 

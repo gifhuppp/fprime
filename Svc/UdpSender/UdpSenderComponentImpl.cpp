@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  UdpSenderImpl.cpp
 // \author tcanham
 // \brief  cpp file for UdpSender component implementation class
@@ -7,25 +7,22 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 
 #include <Svc/UdpSender/UdpSenderComponentImpl.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 #include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cerrno>
+#include <cstdlib>
 #include <unistd.h>
-
-//#define DEBUG_PRINT(x,...) printf(x,##__VA_ARGS__)
-#define DEBUG_PRINT(x,...)
 
 namespace Svc {
 
   // ----------------------------------------------------------------------
-  // Construction, initialization, and destruction 
+  // Construction, initialization, and destruction
   // ----------------------------------------------------------------------
 
   UdpSenderComponentImpl ::
@@ -40,18 +37,8 @@ namespace Svc {
 
   }
 
-  void UdpSenderComponentImpl ::
-    init(
-        const NATIVE_INT_TYPE queueDepth,
-        const NATIVE_INT_TYPE msgSize,
-        const NATIVE_INT_TYPE instance
-    ) 
-  {
-    UdpSenderComponentBase::init(queueDepth, msgSize, instance);
-  }
-
   UdpSenderComponentImpl ::
-    ~UdpSenderComponentImpl(void)
+    ~UdpSenderComponentImpl()
   {
       if (this->m_fd != -1) {
           close(this->m_fd);
@@ -74,7 +61,7 @@ namespace Svc {
       }
 
       /* fill in the server's address and data */
-      memset((char*)&m_servAddr, 0, sizeof(m_servAddr));
+      memset(&m_servAddr, 0, sizeof(m_servAddr));
       m_servAddr.sin_family = AF_INET;
       m_servAddr.sin_port = htons(atoi(port));
       inet_aton(addr , &m_servAddr.sin_addr);
@@ -93,7 +80,7 @@ namespace Svc {
   void UdpSenderComponentImpl ::
     Sched_handler(
         const NATIVE_INT_TYPE portNum,
-        NATIVE_UINT_TYPE context
+        U32 context
     )
   {
       this->tlmWrite_US_BytesSent(this->m_bytesSent);
@@ -115,7 +102,6 @@ namespace Svc {
           return;
       }
 
-      DEBUG_PRINT("PortsIn_handler: %d\n",portNum);
       Fw::SerializeStatus stat;
       m_sendBuff.resetSer();
 
@@ -129,12 +115,11 @@ namespace Svc {
       stat = m_sendBuff.serialize(Buffer);
       FW_ASSERT(Fw::FW_SERIALIZE_OK == stat,stat);
       // send on UDP socket
-      DEBUG_PRINT("Sending %d bytes\n",m_sendBuff.getBuffLength());
       ssize_t sendStat = sendto(this->m_fd,
               m_sendBuff.getBuffAddr(),
               m_sendBuff.getBuffLength(),
               0,
-              (struct sockaddr *) &m_servAddr,
+              reinterpret_cast<struct sockaddr *>(&m_servAddr),
               sizeof(m_servAddr));
       if (-1 == sendStat) {
           Fw::LogStringArg arg(strerror(errno));
@@ -147,9 +132,10 @@ namespace Svc {
   }
 
 #ifdef BUILD_UT
-  void UdpSenderComponentImpl::UdpSerialBuffer::operator=(const Svc::UdpSenderComponentImpl::UdpSerialBuffer& other) {
+  UdpSerialBuffer& UdpSenderComponentImpl::UdpSerialBuffer::operator=(const Svc::UdpSenderComponentImpl::UdpSerialBuffer& other) {
       this->resetSer();
       this->serialize(other.getBuffAddr(),other.getBuffLength(),true);
+      return *this;
   }
 
   UdpSenderComponentImpl::UdpSerialBuffer::UdpSerialBuffer(

@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  InterleavedScenario.hpp
 // \author bocchino
 // \brief  Randomly interleave several scenarios
@@ -7,13 +7,13 @@
 // Copyright (C) 2017 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// ====================================================================== 
+// ======================================================================
 
 #ifndef STest_InterleavedScenario_HPP
 #define STest_InterleavedScenario_HPP
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 #include "STest/Scenario/Scenario.hpp"
 #include "STest/Scenario/ScenarioArray.hpp"
@@ -28,7 +28,7 @@ namespace STest {
     public:
 
       // ----------------------------------------------------------------------
-      // Constructors and destructors 
+      // Constructors and destructors
       // ----------------------------------------------------------------------
 
       //! Construct an InterleavedScenario object
@@ -38,15 +38,20 @@ namespace STest {
           const U32 size //!< The size of the array
       ) :
         Scenario<State>(name),
-        scenarioArray(new ScenarioArray<State>(scenarios, size))
+        scenarioArray(new ScenarioArray<State>(scenarios, size)),
+        seen(new bool[size])
       {
 
       }
 
       //! Destroy an InterleavedScenario object
-      ~InterleavedScenario(void) {
-        assert(this->scenarioArray != NULL);
-        delete this->scenarioArray;
+      ~InterleavedScenario() {
+        if (this->scenarioArray != nullptr) {
+          delete this->scenarioArray;
+        }
+        if (this->seen != nullptr) {
+          delete[] this->seen;
+        }
       }
 
     protected:
@@ -56,22 +61,21 @@ namespace STest {
       // ----------------------------------------------------------------------
 
       //! The virtual implementation of reset required by Scenario
-      void reset_Scenario(void) {
-        assert(this->scenarioArray != NULL);
+      void reset_Scenario() {
+        assert(this->scenarioArray != nullptr);
         this->scenarioArray->reset();
       }
 
       //! The virtual implementation of nextRule required by Scenario
-      //! \return The next rule, assuming isDone() is false, or NULL if none
+      //! \return The next rule, assuming isDone() is false, or nullptr if none
       Rule<State>* nextRule_Scenario(
           State& state //!< The system state
       ) {
-        assert(this->scenarioArray != NULL);
-        Rule<State>* rule = NULL;
-        bool seen[this->scenarioArray->size];
-        memset(seen, 0, this->scenarioArray->size * sizeof(bool));
+        assert(this->scenarioArray != nullptr);
+        Rule<State>* rule = nullptr;
+        memset(this->seen, 0, this->scenarioArray->size * sizeof(bool));
         U32 numSeen = 0;
-        Scenario<State>* *const scenarios = 
+        Scenario<State>* *const scenarios =
           this->scenarioArray->getScenarios();
         U32 numIterations = 0;
         const U32 maxIterations = 0xFFFFFFFFU;
@@ -79,14 +83,14 @@ namespace STest {
           assert(numIterations < maxIterations);
           ++numIterations;
           const U32 i = this->scenarioArray->getRandomIndex();
-          if (seen[i]) {
+          if (this->seen[i]) {
             continue;
           }
           rule = scenarios[i]->nextRule(state);
-          if (rule != NULL) {
+          if (rule != nullptr) {
             break;
           }
-          seen[i] = true;
+          this->seen[i] = true;
           ++numSeen;
         }
         return rule;
@@ -94,13 +98,13 @@ namespace STest {
 
       //! The virtual implementation of isDone required by Scenario
       //! \return Whether the scenario is done
-      bool isDone_Scenario(void) const {
+      bool isDone_Scenario() const {
         bool result = true;
-        Scenario<State>* *const scenarios = 
+        Scenario<State>* *const scenarios =
           this->scenarioArray->getScenarios();
-        assert(scenarios != NULL);
+        assert(scenarios != nullptr);
         for (U32 i = 0; i < scenarioArray->size; ++i) {
-          assert(scenarios[i] != NULL);
+          assert(scenarios[i] != nullptr);
           if (!scenarios[i]->isDone()) {
             result = false;
             break;
@@ -112,11 +116,14 @@ namespace STest {
     protected:
 
       // ----------------------------------------------------------------------
-      // Protected member variables 
+      // Protected member variables
       // ----------------------------------------------------------------------
 
       //! The scenarios to interleave
       ScenarioArray<State>* scenarioArray;
+
+      //! An array to store the scenarios seen
+      bool* seen;
 
   };
 

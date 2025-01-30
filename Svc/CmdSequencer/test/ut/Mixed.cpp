@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  Mixed.cpp
 // \author Canham/Bocchino
 // \brief  Test mixed immediate, relative, and absolute commands
@@ -7,32 +7,32 @@
 // Copyright (C) 2009-2018 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
+// ======================================================================
 
 #include "Svc/CmdSequencer/test/ut/CommandBuffers.hpp"
 #include "Svc/CmdSequencer/test/ut/Mixed.hpp"
-#include "Os/Stubs/FileStubs.hpp"
 
 namespace Svc {
 
   namespace Mixed {
 
     // ----------------------------------------------------------------------
-    // Constructors 
+    // Constructors
     // ----------------------------------------------------------------------
 
-    Tester ::
-      Tester(const SequenceFiles::File::Format::t format) :
-        MixedRelativeBase::Tester(format)
+    CmdSequencerTester ::
+      CmdSequencerTester(const SequenceFiles::File::Format::t format) :
+        MixedRelativeBase::CmdSequencerTester(format)
     {
 
     }
 
     // ----------------------------------------------------------------------
-    // Tests 
+    // Tests
     // ----------------------------------------------------------------------
 
-    void Tester ::
-      AutoByCommand(void)
+    void CmdSequencerTester ::
+      AutoByCommand()
     {
       SequenceFiles::MixedFile file(this->format);
       const U32 numCommands = 4;
@@ -40,20 +40,20 @@ namespace Svc {
       this->parameterizedAutoByCommand(file, numCommands, bound);
     }
 
-    void Tester ::
-      Validate(void)
+    void CmdSequencerTester ::
+      Validate()
     {
       SequenceFiles::MixedFile file(this->format);
       this->parameterizedValidate(file);
     }
 
     // ----------------------------------------------------------------------
-    // Private helper methods 
+    // Private helper methods
     // ----------------------------------------------------------------------
 
-    void Tester ::
+    void CmdSequencerTester ::
       executeCommandsAuto(
-          const char *const fileName, 
+          const char *const fileName,
           const U32 numCommands,
           const U32 bound,
           const CmdExecMode::t mode
@@ -68,7 +68,7 @@ namespace Svc {
       this->executeCommand4(fileName);
     }
 
-    void Tester ::
+    void CmdSequencerTester ::
       executeCommand1(const char* const fileName)
     {
       // Set the time to past absolute command
@@ -88,7 +88,7 @@ namespace Svc {
       ASSERT_from_comCmdOut_SIZE(1);
       ASSERT_from_comCmdOut(0, comBuff, 0U);
       // Send status back
-      this->invoke_to_cmdResponseIn(0, 0, 0, Fw::COMMAND_OK);
+      this->invoke_to_cmdResponseIn(0, 0, 0, Fw::CmdResponse::OK);
       this->clearAndDispatch();
       // Assert events
       ASSERT_EVENTS_SIZE(1);
@@ -103,7 +103,7 @@ namespace Svc {
       );
     }
 
-    void Tester ::
+    void CmdSequencerTester ::
       executeCommand2(const char* const fileName)
     {
       // Check command buffer
@@ -112,7 +112,7 @@ namespace Svc {
       ASSERT_from_comCmdOut_SIZE(1);
       ASSERT_from_comCmdOut(0, comBuff, 0U);
       // Send status back
-      this->invoke_to_cmdResponseIn(0, 2, 0, Fw::COMMAND_OK);
+      this->invoke_to_cmdResponseIn(0, 2, 0, Fw::CmdResponse::OK);
       this->clearAndDispatch();
       // Assert events
       ASSERT_EVENTS_SIZE(1);
@@ -127,7 +127,7 @@ namespace Svc {
       );
     }
 
-    void Tester ::
+    void CmdSequencerTester ::
       executeCommand3(const char* const fileName)
     {
       // Set the time to past relative timer
@@ -147,7 +147,7 @@ namespace Svc {
       ASSERT_from_comCmdOut_SIZE(1);
       ASSERT_from_comCmdOut(0, comBuff, 0U);
       // Send status back
-      this->invoke_to_cmdResponseIn(0, 4, 0, Fw::COMMAND_OK);
+      this->invoke_to_cmdResponseIn(0, 4, 0, Fw::CmdResponse::OK);
       this->clearAndDispatch();
       // Assert events
       ASSERT_EVENTS_SIZE(1);
@@ -162,7 +162,7 @@ namespace Svc {
       );
     }
 
-    void Tester ::
+    void CmdSequencerTester ::
       executeCommand4(const char* const fileName)
     {
       // Assert that timer is clear - immediate command
@@ -176,7 +176,7 @@ namespace Svc {
       ASSERT_from_comCmdOut_SIZE(1);
       ASSERT_from_comCmdOut(0, comBuff, 0U);
       // Send status back
-      this->invoke_to_cmdResponseIn(0, 6, 0, Fw::COMMAND_OK);
+      this->invoke_to_cmdResponseIn(0, 6, 0, Fw::CmdResponse::OK);
       this->clearAndDispatch();
       // Assert that timer is clear - no scheduled command
       ASSERT_EQ(
@@ -193,7 +193,7 @@ namespace Svc {
       ASSERT_TLM_CS_CommandsExecuted(0, 4);
       // Check for command complete on seqDone
       ASSERT_from_seqDone_SIZE(1);
-      ASSERT_from_seqDone(0, 0U, 0U, Fw::COMMAND_OK);
+      ASSERT_from_seqDone(0, 0U, 0U, Fw::CmdResponse(Fw::CmdResponse::OK));
       // Run a cycle. Should be no output
       this->invoke_to_schedIn(0, 0);
       this->clearAndDispatch();
