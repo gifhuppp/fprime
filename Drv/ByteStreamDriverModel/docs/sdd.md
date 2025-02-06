@@ -1,5 +1,4 @@
-\page ByteStreamDriverModel Byte Stream Driver Model
-# Byte Stream Driver Model
+# Drv::ByteStreamDriverModel Byte Stream Driver Model
 
 The byte stream driver is a generic model for drivers implementing a "stream of bytes" interface. Typically these
 drivers operate with an outgoing stream and an incoming stream. The outgoing stream is represented by the "send" port
@@ -11,11 +10,11 @@ The manager component (typically the ground interface) initiates the transfer of
 The caller will provide a `Fw::Buffer` containing the data to send and the port call will return a status of that send.
 These responses are an enumeration whose values are described in the following table:
 
-| Value | Description |
-|---|---|
-| Drv::SEND_OK    | Send functioned normally. |
-| Drv::SEND_RETRY | Send should be retried, but a subsequent send should return SEND_OK. |
-| Drv::SEND_ERROR | Send produced an error, future sends likely to fail. |
+| Value | Description | Buffer Ownership |
+|---|---|---|
+| Drv::SEND_OK    | Send functioned normally. | Ownership of the `Fw::Buffer` passes to the byte stream driver. |
+| Drv::SEND_RETRY | Send should be retried, but a subsequent send should return SEND_OK. | The caller retains ownership of the `Fw::Buffer`. |
+| Drv::SEND_ERROR | Send produced an error, future sends likely to fail. | Ownership of the `Fw::Buffer` passes to the byte stream driver. |
 
 **Note:** in either formation described below, send will operate as described here.
 
@@ -41,7 +40,7 @@ The following components implement the byte stream model using a callback format
 
 ![Poll](./img/canvas-poll.png)
 
-In the callback formation, The manager component (typically the ground interface) initiates the transfer of received
+In the polling formation, the manager component (typically the ground interface) initiates the transfer of received
 data by calling the "poll" input port. This port fills in the provided `Fw::Buffer` along with a status for the poll.
 This status is an enumeration whose values are described in the following table:
 
@@ -64,10 +63,3 @@ implementations running on baremetal machines.
 | BYTEDRV-001 | The ByteStreamDriverModel shall provide the capability to send bytes | inspection |
 | BYTEDRV-002 | The ByteStreamDriverModel shall provide the capability to poll for bytes | inspection |
 | BYTEDRV-003 | The ByteStreamDriverModel shall provide the capability to produce bytes | inspection |
-
-## Change Log
-
-| Date | Description |
-|---|---|
-| 2020-12-17 | Initial Draft |
-| 2021-01-28 | Updated |

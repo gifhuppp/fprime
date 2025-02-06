@@ -1,14 +1,14 @@
 ####
 # F prime CMakeLists.txt:
 #
-# SOURCE_FILES: combined list of source and autocoding diles
+# SOURCE_FILES: combined list of source and autocoding files
 # MOD_DEPS: (optional) module dependencies
 #
 ####
 set(SOURCE_FILES
-  "${CMAKE_CURRENT_LIST_DIR}/TimePortAi.xml"
+  "${CMAKE_CURRENT_LIST_DIR}/Time.fpp"
   "${CMAKE_CURRENT_LIST_DIR}/Time.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/Time.cpp"
+  "${CMAKE_CURRENT_LIST_DIR}/TimeInterval.cpp"
 )
 register_fprime_module()
 ### UTs ###

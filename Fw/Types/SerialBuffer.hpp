@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  SerialBuffer.hpp
 // \author bocchino
 // \brief  hpp file for SerialBuffer type
@@ -7,84 +7,73 @@
 // Copyright (C) 2016 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef Fw_SerialBuffer_HPP
 #define Fw_SerialBuffer_HPP
 
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 #include "Fw/Types/Serializable.hpp"
 
 namespace Fw {
 
-  //! \class SerialBuffer
-  //! \brief A variable-length serializable buffer
-  //!
-  class SerialBuffer :
-    public SerializeBufferBase
-  {
+//! \class SerialBuffer
+//! \brief A variable-length serializable buffer
+//!
+class SerialBuffer : public SerializeBufferBase {
+  public:
+    // ----------------------------------------------------------------------
+    // Construction
+    // ----------------------------------------------------------------------
 
-    public:
+    //! Construct a SerialBuffer
+    //!
+    SerialBuffer(U8* const data,     //!< Pointer to the data
+                 const U32 capacity  //!< The buffer capacity
+    );
 
-      // ----------------------------------------------------------------------
-      // Construction 
-      // ----------------------------------------------------------------------
+  public:
+    // ----------------------------------------------------------------------
+    // Pure virtual methods from SerializeBufferBase
+    // ----------------------------------------------------------------------
 
-      //! Construct a SerialBuffer
-      //!
-      SerialBuffer(
-          U8 *const data, //!< Pointer to the data
-          const U32 capacity //!< The buffer capacity
-      );
+    NATIVE_UINT_TYPE getBuffCapacity() const;
 
-    public:
+    U8* getBuffAddr();
 
-      // ----------------------------------------------------------------------
-      // Pure virtual methods from SerializeBufferBase
-      // ----------------------------------------------------------------------
+    const U8* getBuffAddr() const;
 
-      NATIVE_UINT_TYPE getBuffCapacity(void) const;
+  public:
+    // ----------------------------------------------------------------------
+    // Public instance methods
+    // ----------------------------------------------------------------------
 
-      U8* getBuffAddr(void);
+    //! Fill the buffer to capacity with preexisting data
+    void fill();
 
-      const U8* getBuffAddr(void) const;
+    //! Push n bytes onto the buffer
+    SerializeStatus pushBytes(const U8* const addr,     //!< Address of bytes to push
+                              const NATIVE_UINT_TYPE n  //!< Number of bytes
+    );
 
-    public:
+    //! Pop n bytes off the buffer
+    SerializeStatus popBytes(U8* const addr,     //!< Address of bytes to pop
+                             NATIVE_UINT_TYPE n  //!< Number of bytes to pop
+    );
 
-      // ----------------------------------------------------------------------
-      // Public instance methods 
-      // ----------------------------------------------------------------------
+  private:
+    // ----------------------------------------------------------------------
+    // Data
+    // ----------------------------------------------------------------------
 
-      //! Fill the buffer to capacity with preexisting data
-      void fill(void);
+    //! The data
+    U8* const m_data;
 
-      //! Push n bytes onto the buffer
-      SerializeStatus pushBytes(
-          const U8 *const addr, //!< Address of bytes to push
-          const NATIVE_UINT_TYPE n //!< Number of bytes
-      );
+    //! The capacity
+    const U32 m_capacity;
+};
 
-      //! Pop n bytes off the buffer
-      SerializeStatus popBytes(
-          U8 *const addr, //!< Address of bytes to pop
-          NATIVE_UINT_TYPE n //!< Number of bytes to pop
-      );
-
-    private:
-
-      // ----------------------------------------------------------------------
-      // Data 
-      // ----------------------------------------------------------------------
-
-      //! The data
-      U8 *const data;
-
-      //! The capacity
-      const U32 capacity;
-
-  };
-
-}
+}  // namespace Fw
 
 #endif

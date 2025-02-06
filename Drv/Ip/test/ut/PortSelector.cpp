@@ -5,7 +5,7 @@
 #include "PortSelector.hpp"
 #include <sys/socket.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 #include <arpa/inet.h>
 
 namespace Drv {
@@ -34,15 +34,11 @@ U16 get_free_port(bool udp) {
         return 0;
     }
     socklen_t size = sizeof(address);
-    if (::getsockname(socketFd, ((struct sockaddr *) &address), &size) == -1) {
+    if (::getsockname(socketFd, reinterpret_cast<struct sockaddr *>(&address), &size) == -1) {
         ::close(socketFd);
         return 0;
     }
-    U16 port = address.sin_port;
-    // Check for root-only-port.  If so, recursively try again.
-    if (port < 1024) {
-        port = get_free_port(udp);
-    }
+    U16 port = ntohs(address.sin_port);
     ::close(socketFd); // Close this recursion's port again, such that we don't infinitely loop
     return port;
 

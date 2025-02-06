@@ -10,9 +10,11 @@
 //
 // ======================================================================
 
+#include <limits>
 #include <Drv/Udp/UdpComponentImpl.hpp>
 #include <IpCfg.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
+#include "Fw/Types/Assert.hpp"
 
 
 namespace Drv {
@@ -22,12 +24,7 @@ namespace Drv {
 // ----------------------------------------------------------------------
 
 UdpComponentImpl::UdpComponentImpl(const char* const compName)
-    : ByteStreamDriverModelComponentBase(compName),
-      SocketReadTask() {}
-
-void UdpComponentImpl::init(const NATIVE_INT_TYPE instance) {
-    ByteStreamDriverModelComponentBase::init(instance);
-}
+    : UdpComponentBase(compName) {}
 
 SocketIpStatus UdpComponentImpl::configureSend(const char* hostname,
                                                  const U16 port,
@@ -36,11 +33,18 @@ SocketIpStatus UdpComponentImpl::configureSend(const char* hostname,
     return m_socket.configureSend(hostname, port, send_timeout_seconds, send_timeout_microseconds);
 }
 
-SocketIpStatus UdpComponentImpl::configureRecv(const char* hostname, const U16 port) {
+SocketIpStatus UdpComponentImpl::configureRecv(const char* hostname, const U16 port, FwSizeType buffer_size) {
+    FW_ASSERT(buffer_size <= std::numeric_limits<U32>::max(), static_cast<FwAssertArgType>(buffer_size));
+    m_allocation_size = buffer_size; // Store the buffer size
+
     return m_socket.configureRecv(hostname, port);
 }
 
-UdpComponentImpl::~UdpComponentImpl(void) {}
+UdpComponentImpl::~UdpComponentImpl() {}
+
+U16 UdpComponentImpl::getRecvPort() {
+    return this->m_socket.getRecvPort();
+}
 
 // ----------------------------------------------------------------------
 // Implementations for socket read task virtual methods
@@ -51,11 +55,21 @@ IpSocket& UdpComponentImpl::getSocketHandler() {
 }
 
 Fw::Buffer UdpComponentImpl::getBuffer() {
-    return allocate_out(0, 1024);
+    return allocate_out(0, static_cast<U32>(m_allocation_size));
 }
 
 void UdpComponentImpl::sendBuffer(Fw::Buffer buffer, SocketIpStatus status) {
-    this->recv_out(0, buffer, (status == SOCK_SUCCESS) ? RECV_OK : RECV_ERROR);
+    Drv::RecvStatus recvStatus = RecvStatus::RECV_ERROR;
+    if (status == SOCK_SUCCESS) {
+        recvStatus = RecvStatus::RECV_OK;
+    }
+    else if (status == SOCK_NO_DATA_AVAILABLE) {
+        recvStatus = RecvStatus::RECV_NO_DATA;
+    }
+    else {
+        recvStatus = RecvStatus::RECV_ERROR;
+    }
+    this->recv_out(0, buffer, recvStatus);
 }
 
 void UdpComponentImpl::connected() {
@@ -69,20 +83,15 @@ void UdpComponentImpl::connected() {
 // ----------------------------------------------------------------------
 
 Drv::SendStatus UdpComponentImpl::send_handler(const NATIVE_INT_TYPE portNum, Fw::Buffer& fwBuffer) {
-    Drv::SocketIpStatus status = m_socket.send(fwBuffer.getData(), fwBuffer.getSize());
+    Drv::SocketIpStatus status = send(fwBuffer.getData(), fwBuffer.getSize());
     // Always return the buffer
     deallocate_out(0, fwBuffer);
     if ((status == SOCK_DISCONNECTED) || (status == SOCK_INTERRUPTED_TRY_AGAIN)) {
-        return SEND_RETRY;
+        return SendStatus::SEND_RETRY;
     } else if (status != SOCK_SUCCESS) {
-        return SEND_ERROR;
+        return SendStatus::SEND_ERROR;
     }
-    return SEND_OK;
-}
-
-Drv::PollStatus UdpComponentImpl::poll_handler(const NATIVE_INT_TYPE portNum, Fw::Buffer& fwBuffer) {
-    FW_ASSERT(0); // It is an error to call this handler on IP drivers
-    return Drv::POLL_ERROR;
+    return SendStatus::SEND_OK;
 }
 
 }  // end namespace Drv

@@ -16,8 +16,8 @@ namespace Svc {
 
   namespace Health {
 
-    void Tester ::
-      Ping(void)
+    void BufferLoggerTester ::
+      Ping()
     {
 
       U32 key = 42;

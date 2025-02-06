@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  SelectedScenario.hpp
 // \author bocchino
 // \brief  Randomly select a scenario and run it
@@ -7,13 +7,13 @@
 // Copyright (C) 2017 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// ====================================================================== 
+// ======================================================================
 
 #ifndef STest_SelectedScenario_HPP
 #define STest_SelectedScenario_HPP
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 #include "STest/Random/Random.hpp"
 #include "STest/Scenario/Scenario.hpp"
@@ -29,7 +29,7 @@ namespace STest {
     public:
 
       // ----------------------------------------------------------------------
-      // Constructors and destructors 
+      // Constructors and destructors
       // ----------------------------------------------------------------------
 
       //! Construct a SelectedScenario object
@@ -40,15 +40,20 @@ namespace STest {
       ) :
         Scenario<State>(name),
         scenarioArray(new ScenarioArray<State>(scenarios, size)),
-        selectedScenario(NULL)
+        selectedScenario(nullptr),
+        seen(new bool[size])
       {
 
       }
 
       //! Destroy a SelectedScenario object
-      virtual ~SelectedScenario(void) {
-        assert(this->scenarioArray != NULL);
-        delete this->scenarioArray;
+      virtual ~SelectedScenario() {
+        if (this->scenarioArray != nullptr) {
+          delete this->scenarioArray;
+        }
+        if (this->seen != nullptr) {
+          delete[] this->seen;
+        }
       }
 
     public:
@@ -58,19 +63,19 @@ namespace STest {
       // ----------------------------------------------------------------------
 
       //! The virtual implementation of reset required by Scenario
-      void reset_Scenario(void) {
-        this->selectedScenario = NULL;
-        assert(this->scenarioArray != NULL);
+      void reset_Scenario() {
+        this->selectedScenario = nullptr;
+        assert(this->scenarioArray != nullptr);
         this->scenarioArray->reset();
       }
 
       //! The virtual implementation of nextRule required by Scenario
-      //! \return The next rule, assuming isDone() is false, or NULL if none
+      //! \return The next rule, assuming isDone() is false, or nullptr if none
       Rule<State>* nextRule_Scenario(
           State& state //!< The system state
       ) {
-        Rule<State>* rule = NULL;
-        if (this->selectedScenario == NULL) {
+        Rule<State>* rule = nullptr;
+        if (this->selectedScenario == nullptr) {
           rule = this->selectScenario(state);
         }
         else {
@@ -81,17 +86,17 @@ namespace STest {
 
       //! The virtual implementation of isDone required by Scenario
       //! \return Whether the scenario is done
-      bool isDone_Scenario(void) const {
+      bool isDone_Scenario() const {
         bool result = true;
-        if (this->selectedScenario != NULL) {
+        if (this->selectedScenario != nullptr) {
           result = this->selectedScenario->isDone();
         }
         else {
-          Scenario<State>* *const scenarios = 
+          Scenario<State>* *const scenarios =
             this->scenarioArray->getScenarios();
-          assert(scenarios != NULL);
+          assert(scenarios != nullptr);
           for (U32 i = 0; i < scenarioArray->size; ++i) {
-            assert(scenarios[i] != NULL);
+            assert(scenarios[i] != nullptr);
             if (!scenarios[i]->isDone()) {
               result = false;
               break;
@@ -112,28 +117,27 @@ namespace STest {
       Rule<State>* selectScenario(
           State& state //!< The system state
       ) {
-        Rule<State>* rule = NULL;
+        Rule<State>* rule = nullptr;
         const U32 size = this->scenarioArray->size;
-        bool seen[size];
-        memset(seen, 0, sizeof(seen));
+        memset(this->seen, 0, size * sizeof(bool));
         U32 numSeen = 0;
-        assert(this->scenarioArray != NULL);
-        Scenario<State> **const scenarios = 
+        assert(this->scenarioArray != nullptr);
+        Scenario<State> **const scenarios =
           this->scenarioArray->getScenarios();
-        assert(scenarios != NULL);
+        assert(scenarios != nullptr);
         while (numSeen < size) {
           const U32 i = this->scenarioArray->getRandomIndex();
-          if (seen[i]) {
+          if (this->seen[i]) {
             continue;
           }
           Scenario<State> *const scenario = scenarios[i];
-          assert(scenario != NULL);
+          assert(scenario != nullptr);
           rule = scenario->nextRule(state);
-          if (rule != NULL) {
+          if (rule != nullptr) {
             this->selectedScenario = scenario;
             break;
           }
-          seen[i] = true;
+          this->seen[i] = true;
           ++numSeen;
         }
         return rule;
@@ -142,7 +146,7 @@ namespace STest {
     private:
 
       // ----------------------------------------------------------------------
-      // Private member variables 
+      // Private member variables
       // ----------------------------------------------------------------------
 
       //! ScenarioArray containing the scenarios to select
@@ -150,6 +154,9 @@ namespace STest {
 
       //! The selected scenario
       Scenario<State>* selectedScenario;
+
+      //! An array to store the scenarios seen
+      bool* seen;
 
   };
 

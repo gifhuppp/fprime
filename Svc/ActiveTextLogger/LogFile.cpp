@@ -8,8 +8,9 @@
 #include <Os/File.hpp>
 #include <Os/FileSystem.hpp>
 #include <limits>
-#include <string.h>
-#include <stdio.h>
+#include <cstring>
+#include <cstdio>
+#include <Fw/Types/StringUtils.hpp>
 
 
 namespace Svc {
@@ -39,7 +40,7 @@ namespace Svc {
     bool LogFile::write_to_log(const char *const buf, const U32 size)
     {
 
-        FW_ASSERT(buf != NULL);
+        FW_ASSERT(buf != nullptr);
 
         bool status = true;
 
@@ -60,8 +61,8 @@ namespace Svc {
             // Won't exceed max size, so write to file:
             else {
 
-                NATIVE_INT_TYPE writeSize = static_cast<NATIVE_INT_TYPE>(size);
-                Os::File::Status stat = this->m_file.write(buf,writeSize,true);
+                FwSignedSizeType writeSize = size;
+                Os::File::Status stat = this->m_file.write(reinterpret_cast<const U8*>(buf),writeSize,Os::File::WAIT);
 
                 // Assert that we are not trying to write to a file we never opened:
                 FW_ASSERT(stat != Os::File::NOT_OPENED);
@@ -69,7 +70,7 @@ namespace Svc {
                 // Only return a good status if the write was valid
                 status = (writeSize > 0);
 
-                this->m_currentFileSize += writeSize;
+                this->m_currentFileSize += static_cast<U32>(writeSize);
             }
         }
 
@@ -79,67 +80,47 @@ namespace Svc {
 
     bool LogFile::set_log_file(const char* fileName, const U32 maxSize, const U32 maxBackups)
     {
-        FW_ASSERT(fileName != NULL);
+        FW_ASSERT(fileName != nullptr);
 
         // If there is already a previously open file then close it:
         if (this->m_openFile) {
             this->m_openFile = false;
             this->m_file.close();
         }
+        Fw::FileNameString searchFilename;
+        Fw::FormatStatus formatStatus = searchFilename.format("%s", fileName);
 
         // If file name is too large, return failure:
-        U32 fileNameSize = strnlen(fileName, Fw::String::STRING_SIZE);
-        if (fileNameSize == Fw::String::STRING_SIZE) {
+        if (formatStatus != Fw::FormatStatus::SUCCESS) {
             return false;
         }
 
-        U32 suffix = 0;
-        U64 tmp;
-        char fileNameFinal[Fw::String::STRING_SIZE];
-        (void) strncpy(fileNameFinal,fileName,
-                       Fw::String::STRING_SIZE);
-        fileNameFinal[Fw::String::STRING_SIZE-1] = 0;
-
         // Check if file already exists, and if it does try to tack on a suffix.
-        // Quit after 10 suffix addition tries (first try is w/ the original name).
+        // Quit after maxBackups suffix addition tries (first try is w/ the original name).
+        U32 suffix = 0;
         bool failedSuffix = false;
-        while (Os::FileSystem::getFileSize(fileNameFinal,tmp) == Os::FileSystem::OP_OK) {
-
-            // If the file name was the max size, then can't append a suffix,
-            // so just fail:
-            if (fileNameSize == (Fw::String::STRING_SIZE-1)) {
-                return false;
-            }
-
+        FwSignedSizeType fileSize = 0;
+        while (Os::FileSystem::getFileSize(searchFilename.toChar(), fileSize) == Os::FileSystem::OP_OK) {
             // Not able to create a new non-existing file in maxBackups tries, then mark that it failed:
             if (suffix >= maxBackups) {
                 failedSuffix = true;
                 break;
             }
-
-            NATIVE_INT_TYPE stat = snprintf(fileNameFinal,Fw::String::STRING_SIZE,
-                                            "%s%d",fileName,suffix);
-
-            // If there was error, then just fail:
-            if (stat <= 0) {
+            // Format and check for error and overflows
+            formatStatus = searchFilename.format("%s%" PRIu32, fileName, suffix);
+            if (formatStatus != Fw::FormatStatus::SUCCESS) {
                 return false;
             }
-
-            // There should never be truncation:
-            FW_ASSERT(stat < Fw::String::STRING_SIZE);
-
             ++suffix;
         }
 
         // If failed trying to make a new file, just use the original file
         if (failedSuffix) {
-            (void) strncpy(fileNameFinal,fileName,
-                           Fw::String::STRING_SIZE);
-            fileNameFinal[Fw::String::STRING_SIZE-1] = 0;
+            searchFilename = fileName;
         }
 
         // Open the file (using CREATE so that it truncates an already existing file):
-        Os::File::Status stat = this->m_file.open(fileNameFinal, Os::File::OPEN_CREATE, false);
+        Os::File::Status stat = this->m_file.open(searchFilename.toChar(), Os::File::OPEN_CREATE, Os::File::OverwriteType::OVERWRITE);
 
         // Bad status when trying to open the file:
         if (stat != Os::File::OP_OK) {
@@ -148,7 +129,7 @@ namespace Svc {
 
         this->m_currentFileSize = 0;
         this->m_maxFileSize = maxSize;
-        this->m_fileName = fileNameFinal;
+        this->m_fileName = searchFilename;
         this->m_openFile = true;
 
         return true;

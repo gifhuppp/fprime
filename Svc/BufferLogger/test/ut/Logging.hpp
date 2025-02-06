@@ -13,14 +13,14 @@
 #ifndef Svc_Logging_HPP
 #define Svc_Logging_HPP
 
-#include "Tester.hpp"
+#include "BufferLoggerTester.hpp"
 
 namespace Svc {
 
   namespace Logging {
 
-    class Tester :
-      public Svc::Tester
+    class BufferLoggerTester :
+      public Svc::BufferLoggerTester
     {
 
       public:
@@ -30,16 +30,16 @@ namespace Svc {
         // ----------------------------------------------------------------------
 
         //! Test logging of data from bufferSendIn
-        void BufferSendIn(void);
+        void BufferSendIn();
 
         //! Test close file command
-        void CloseFile(void);
+        void CloseFile();
 
         //! Test logging of data from comIn
-        void ComIn(void);
+        void ComIn();
 
         //! Test logging on/off capability
-        void OnOff(void);
+        void OnOff();
 
     };
 
