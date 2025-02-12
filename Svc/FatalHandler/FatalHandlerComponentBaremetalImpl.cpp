@@ -1,13 +1,13 @@
-// ====================================================================== 
+// ======================================================================
 // \title  FatalHandlerImpl.cpp
 // \author lestarch
 // \brief  cpp file for FatalHandler component implementation class
-// ====================================================================== 
+// ======================================================================
 
-#include <stdlib.h>
-#include <Os/Log.hpp>
+#include <cstdlib>
+#include <Fw/Logger/Logger.hpp>
 #include <Svc/FatalHandler/FatalHandlerComponentImpl.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 
 namespace Svc {
 
@@ -18,9 +18,8 @@ namespace Svc {
     void FatalHandlerComponentImpl::FatalReceive_handler(
             const NATIVE_INT_TYPE portNum,
             FwEventIdType Id) {
-        // for **nix, delay then exit with error code
-        Os::Log::logMsg("FATAL %d handled.\n",(U32)Id,0,0,0,0,0);
-        while (1) {} // Returning might be bad
+        Fw::Logger::log("FATAL %" PRI_FwEventIdType "handled.\n",Id);
+        while (true) {} // Returning might be bad
     }
 
 } // end namespace Svc

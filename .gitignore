@@ -1,6 +1,8 @@
 build/
 build*/
 gtest/
+docs-cache/
+CMakePresets.json
 
 AutoXML/
 test_harness/src/test_harness-C/application.out
@@ -32,8 +34,8 @@ Tester.*
 !**/test/ut/GTestBase.*
 !**/test/ut/TesterBase.*
 !**/test/ut/Tester.*
+seed-history
 
-*.mdxml.bak
 *.sconsign.dblite
 *.class
 .classpath
@@ -45,7 +47,8 @@ coverity.out
 .#*
 
 **/docs/*.html
-*-template
+/docs/UsersGuide/api/*
+*.template.*
 
 logs
 
@@ -53,9 +56,6 @@ test_harness/.autotools
 core
 
 *.swp4
-
-./Gds/logs/*
-./Gds/docs/doxy
 
 *AppDictionary.xml
 *TopologyAppID.csv
@@ -70,11 +70,20 @@ build-fprime-automatic*
 /RPI/bin
 /ci-venv/
 /ci-logs*
+/ci-Framework-logs*
+/ci-Ref-logs*
 TesterBase.*
 GTestBase.*
-/Fw/Python/.eggs
-/Fw/Python/src/fprime.egg-info
-/Gds/src/fprime_gds.egg-info
 **/DefaultDict/serializable/*
+
+fprime-venv
+xml
+depend
+
 /.idea/
 /venv/
+
+Packet-Views
+docs/reference/api/cpp
+docs/reference/api/cmake
+temp_dir/

@@ -1,10 +1,10 @@
 #include <Ref/SendBuffApp/SendBuffComponentImpl.hpp>
-#include <Fw/Types/BasicTypes.hpp>
+#include <FpConfig.hpp>
 #include <Fw/Types/Assert.hpp>
-#include <Os/Log.hpp>
-#include <string.h>
+#include <Os/Console.hpp>
+#include <cstring>
 
-#include <stdio.h>
+#include <cstdio>
 
 #define DEBUG_LEVEL 1
 
@@ -20,18 +20,14 @@ namespace Ref {
         this->m_sendPackets = false;
         this->m_currPacketId = 0;
         this->m_firstPacketSent = false;
-        this->m_state = SEND_IDLE;
+        this->m_state = SendBuff_ActiveState::SEND_IDLE;
     }
 
-    SendBuffImpl::~SendBuffImpl(void) {
+    SendBuffImpl::~SendBuffImpl() {
 
     }
-    
-    void SendBuffImpl::init(NATIVE_INT_TYPE queueDepth, NATIVE_INT_TYPE instance) {
-        SendBuffComponentBase::init(queueDepth,instance);
-    }
 
-    void SendBuffImpl::SchedIn_handler(NATIVE_INT_TYPE portNum, NATIVE_UINT_TYPE context) {
+    void SendBuffImpl::SchedIn_handler(NATIVE_INT_TYPE portNum, U32 context) {
 
         // first, dequeue any messages
 
@@ -52,7 +48,8 @@ namespace Ref {
             // reset buffer
             this->m_testBuff.resetSer();
             // serialize packet id
-            FW_ASSERT(this->m_testBuff.serialize(this->m_currPacketId) == Fw::FW_SERIALIZE_OK);
+            Fw::SerializeStatus serStat = this->m_testBuff.serialize(this->m_currPacketId);
+            FW_ASSERT(serStat == Fw::FW_SERIALIZE_OK);
             // increment packet id
             this->m_currPacketId++;
             this->m_buffsSent++;
@@ -75,9 +72,11 @@ namespace Ref {
                 this->log_WARNING_HI_PacketErrorInserted(this->m_currPacketId-1);
             }
             // serialize data
-            FW_ASSERT(this->m_testBuff.serialize(testData,dataSize) == Fw::FW_SERIALIZE_OK);
+            serStat = this->m_testBuff.serialize(testData,dataSize);
+            FW_ASSERT(serStat == Fw::FW_SERIALIZE_OK);
             // serialize checksum
-            FW_ASSERT(this->m_testBuff.serialize(csum) == Fw::FW_SERIALIZE_OK);
+            serStat = this->m_testBuff.serialize(csum);
+            FW_ASSERT(serStat == Fw::FW_SERIALIZE_OK);
             // send data
             this->Data_out(0,this->m_testBuff);
 
@@ -88,27 +87,15 @@ namespace Ref {
         this->tlmWrite_SendState(this->m_state);
     }
 
-    void SendBuffImpl::toString(char* str, I32 buffer_size) {
-#if FW_OBJECT_NAMES == 1    
-        (void) snprintf(str, buffer_size, "Send Buff Component: %s: count: %d Buffs: %d", this->m_objName,
-                        (int) this->m_invocations, (int) this->m_buffsSent);
-        str[buffer_size-1] = 0;
-#else
-        (void) snprintf(str, buffer_size, "Lps Atm Component: count: %d ATMs: %d",
-                        (int) this->m_invocations, (int) this->m_buffsSent);
-#endif
-    }
-
-
     void SendBuffImpl::SB_START_PKTS_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
         this->m_sendPackets = true;
-        this->m_state = SEND_ACTIVE;
-        this->cmdResponse_out(opCode,cmdSeq,Fw::COMMAND_OK);
+        this->m_state = SendBuff_ActiveState::SEND_ACTIVE;
+        this->cmdResponse_out(opCode,cmdSeq,Fw::CmdResponse::OK);
     }
 
     void SendBuffImpl::SB_INJECT_PKT_ERROR_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
         this->m_injectError = true;
-        this->cmdResponse_out(opCode,cmdSeq,Fw::COMMAND_OK);
+        this->cmdResponse_out(opCode,cmdSeq,Fw::CmdResponse::OK);
     }
 
     void SendBuffImpl::SB_GEN_FATAL_cmdHandler(
@@ -119,7 +106,7 @@ namespace Ref {
             U32 arg3 /*!< Third FATAL Argument*/
         ) {
         this->log_FATAL_SendBuffFatal(arg1,arg2,arg3);
-        this->cmdResponse_out(opCode,cmdSeq,Fw::COMMAND_OK);
+        this->cmdResponse_out(opCode,cmdSeq,Fw::CmdResponse::OK);
     }
 
         //! Handler for command SB_GEN_ASSERT
@@ -135,7 +122,7 @@ namespace Ref {
             U32 arg6 /*!< Sixth ASSERT Argument*/
         ) {
          FW_ASSERT(0,arg1,arg2,arg3,arg4,arg5,arg6);
-         this->cmdResponse_out(opCode,cmdSeq,Fw::COMMAND_OK);
+         this->cmdResponse_out(opCode,cmdSeq,Fw::CmdResponse::OK);
      }
 
     void SendBuffImpl::parameterUpdated(FwPrmIdType id) {

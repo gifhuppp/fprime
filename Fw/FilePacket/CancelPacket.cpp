@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  CancelPacket.cpp
 // \author bocchino
 // \brief  cpp file for FilePacket::CancelPacket
@@ -7,8 +7,8 @@
 // Copyright 2009-2016, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #include <Fw/FilePacket/FilePacket.hpp>
 #include <Fw/Types/Assert.hpp>
@@ -18,13 +18,13 @@ namespace Fw {
   void FilePacket::CancelPacket ::
     initialize(const U32 sequenceIndex)
   {
-    this->header.initialize(FilePacket::T_CANCEL, sequenceIndex);
+    this->m_header.initialize(FilePacket::T_CANCEL, sequenceIndex);
   }
 
   U32 FilePacket::CancelPacket ::
-    bufferSize(void) const
+    bufferSize() const
   {
-    return this->header.bufferSize();
+    return this->m_header.bufferSize();
   }
 
   SerializeStatus FilePacket::CancelPacket ::
@@ -34,17 +34,18 @@ namespace Fw {
         buffer.getData(),
         buffer.getSize()
     );
-    return this->header.toSerialBuffer(serialBuffer);
+    return this->m_header.toSerialBuffer(serialBuffer);
   }
 
   SerializeStatus FilePacket::CancelPacket ::
     fromSerialBuffer(SerialBuffer& serialBuffer)
   {
 
-    FW_ASSERT(this->header.type == T_CANCEL);
+    FW_ASSERT(this->m_header.m_type == T_CANCEL);
 
-    if (serialBuffer.getBuffLeft() != 0)
+    if (serialBuffer.getBuffLeft() != 0) {
       return FW_DESERIALIZE_SIZE_MISMATCH;
+    }
 
     return FW_SERIALIZE_OK;
 

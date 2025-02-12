@@ -12,7 +12,8 @@
 
 #include <Drv/Ip/TcpClientSocket.hpp>
 #include <Fw/Logger/Logger.hpp>
-#include <Fw/Types/BasicTypes.hpp>
+#include <Fw/Types/Assert.hpp>
+#include <FpConfig.hpp>
 
 #ifdef TGT_OS_TYPE_VXWORKS
     #include <socket.h>
@@ -25,7 +26,7 @@
     #include <taskLib.h>
     #include <sysLib.h>
     #include <errnoLib.h>
-    #include <string.h>
+    #include <cstring>
 #elif defined TGT_OS_TYPE_LINUX || TGT_OS_TYPE_DARWIN
     #include <sys/socket.h>
     #include <unistd.h>
@@ -34,14 +35,19 @@
     #error OS not supported for IP Socket Communications
 #endif
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 
 namespace Drv {
 
 TcpClientSocket::TcpClientSocket() : IpSocket() {}
 
-SocketIpStatus TcpClientSocket::openProtocol(NATIVE_INT_TYPE& fd) {
+bool TcpClientSocket::isValidPort(U16 port) {
+    return port != 0;
+}
+
+
+SocketIpStatus TcpClientSocket::openProtocol(SocketDescriptor& socketDescriptor) {
     NATIVE_INT_TYPE socketFd = -1;
     struct sockaddr_in address;
 
@@ -75,18 +81,17 @@ SocketIpStatus TcpClientSocket::openProtocol(NATIVE_INT_TYPE& fd) {
         ::close(socketFd);
         return SOCK_FAILED_TO_CONNECT;
     }
-
-    fd = socketFd;
-    Fw::Logger::logMsg("Connected to %s:%hu as a tcp client\n", reinterpret_cast<POINTER_CAST>(m_hostname), m_port);
+    socketDescriptor.fd = socketFd;
+    Fw::Logger::log("Connected to %s:%hu as a tcp client\n", m_hostname, m_port);
     return SOCK_SUCCESS;
 }
 
-I32 TcpClientSocket::sendProtocol(const U8* const data, const U32 size) {
-    return ::send(this->m_fd, data, size, SOCKET_IP_SEND_FLAGS);
+I32 TcpClientSocket::sendProtocol(const SocketDescriptor& socketDescriptor, const U8* const data, const U32 size) {
+    return static_cast<I32>(::send(socketDescriptor.fd, data, size, SOCKET_IP_SEND_FLAGS));
 }
 
-I32 TcpClientSocket::recvProtocol(U8* const data, const U32 size) {
-    return ::recv(this->m_fd, data, size, SOCKET_IP_RECV_FLAGS);
+I32 TcpClientSocket::recvProtocol(const SocketDescriptor& socketDescriptor, U8* const data, const U32 size) {
+    return static_cast<I32>(::recv(socketDescriptor.fd, data, size, SOCKET_IP_RECV_FLAGS));
 }
 
 }  // namespace Drv

@@ -1,4 +1,3 @@
-\page SvcHealthComponent Svc::Health Component
 # Svc::Health Component
 
 ## 1. Introduction
@@ -35,10 +34,10 @@ The Svc::Health component uses the following port types:
 
 Port Data Type | Name | Direction | Kind | Usage
 -------------- | ---- | --------- | ---- | -----
-[`Svc::Ping`](../../../Svc/Ping/docs/sdd.html) | PingSend | Output | n/a | Send ping requests from components
-[`Svc::Ping`](../../../Svc/Ping/docs/sdd.html) | PingReturn | Input | Asynchronous | Receive ping responses from components
-[`Svc::Sched`](../../../Svc/Sched/docs/sdd.html) | Run | Input | Synchronous | Execute periodic behavior
-[`Svc::WatchDog`](../../../Svc/WatchDog/docs/sdd.html) | Wdog | Output | n/a | Send ping requests from components
+[`Svc::Ping`](../../../Svc/Ping/docs/sdd.md) | PingSend | Output | n/a | Send ping requests from components
+[`Svc::Ping`](../../../Svc/Ping/docs/sdd.md) | PingReturn | Input | Asynchronous | Receive ping responses from components
+[`Svc::Sched`](../../../Svc/Sched/docs/sdd.md) | Run | Input | Synchronous | Execute periodic behavior
+[`Svc::WatchDog`](../../../Svc/WatchDog/docs/sdd.md) | Wdog | Output | n/a | Send ping requests from components
 
 ### 3.2 Functional Description
 
@@ -79,11 +78,11 @@ TBD
 
 ## 5. Module Checklists
 
-Document | Link
--------- | ----
-Design Checklist | [Link](Checklist_Design.xlsx)
-Code Checklist | [Link](Checklist_Code.xlsx)
-Unit Test Checklist | [Link](Checklist_Unit_test.xls)
+Checklist |
+-------- |
+[Design](Checklist_Design.xlsx) |
+[Code](Checklist_Code.xlsx) |
+[Unit Test](Checklist_Unit_Test.xls) |
 
 ## 6. Unit Testing
 The Health unit tests are designed to test interfaces and functionality with the available ports, command processing, telemetry output, EVR and data product generation.

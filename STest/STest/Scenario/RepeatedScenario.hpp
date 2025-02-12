@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  RepeatedScenario.hpp
 // \author bocchino
 // \brief  Repeat a scenario
@@ -7,7 +7,7 @@
 // Copyright (C) 2017 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// ====================================================================== 
+// ======================================================================
 
 #ifndef STest_RepeatedScenario_HPP
 #define STest_RepeatedScenario_HPP
@@ -24,7 +24,7 @@ namespace STest {
     public:
 
       // ----------------------------------------------------------------------
-      // Constructors and destructors 
+      // Constructors and destructors
       // ----------------------------------------------------------------------
 
       //! Construct a RepeatedScenario
@@ -36,23 +36,23 @@ namespace STest {
         scenario(scenario),
         done(false)
       {
-        
+
       }
 
     public:
 
-      // ---------------------------------------------------------------------- 
+      // ----------------------------------------------------------------------
       // IteratedScenario implementation
-      // ---------------------------------------------------------------------- 
+      // ----------------------------------------------------------------------
 
       //! The virtual implementation of reset required by IteratedScenario
-      void reset_IteratedScenario(void) {
+      void reset_IteratedScenario() {
         this->scenario.reset();
         this->done = scenario.isDone();
       }
 
       //! The virtual implementation of nextScenario required by IteratedScenario
-      //! \return The next scenario, assuming isDone() is false, or NULL if none
+      //! \return The next scenario, assuming isDone() is false, or nullptr if none
       Scenario<State>* nextScenario_IteratedScenario(
           State& state //!< The system state
       ) {
@@ -61,14 +61,14 @@ namespace STest {
 
       //! The virtual implementation of isDone required by IteratedScenario
       //! \return Whether the scenario is done
-      bool isDone_IteratedScenario(void) const {
+      bool isDone_IteratedScenario() const {
         return this->done;
       }
 
     protected:
 
       // ----------------------------------------------------------------------
-      // Protected member variables 
+      // Protected member variables
       // ----------------------------------------------------------------------
 
       //! The scenario to repeat

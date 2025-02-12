@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  UdpReceiverImpl.cpp
 // \author tcanham
 // \brief  cpp file for UdpReceiver component implementation class
@@ -7,28 +7,25 @@
 // Copyright 2009-2015, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 
 #include <Svc/UdpReceiver/UdpReceiverComponentImpl.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
 #include <sys/types.h>
-#include <string.h>
-#include <errno.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cerrno>
+#include <cstdlib>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <Os/TaskString.hpp>
 
-//#define DEBUG_PRINT(x,...) printf(x,##__VA_ARGS__)
-#define DEBUG_PRINT(x,...)
-
 namespace Svc {
 
   // ----------------------------------------------------------------------
-  // Construction, initialization, and destruction 
+  // Construction, initialization, and destruction
   // ----------------------------------------------------------------------
 
   UdpReceiverComponentImpl ::
@@ -46,16 +43,8 @@ namespace Svc {
 
   }
 
-  void UdpReceiverComponentImpl ::
-    init(
-        const NATIVE_INT_TYPE instance
-    ) 
-  {
-    UdpReceiverComponentBase::init(instance);
-  }
-
   UdpReceiverComponentImpl ::
-    ~UdpReceiverComponentImpl(void)
+    ~UdpReceiverComponentImpl()
   {
       if (this->m_fd != -1) {
           close(this->m_fd);
@@ -75,7 +64,7 @@ namespace Svc {
 
       sockaddr_in saddr;
       // zero out the structure
-      memset((char *) &saddr, 0, sizeof(saddr));
+      memset(&saddr, 0, sizeof(saddr));
 
       saddr.sin_family = AF_INET;
       saddr.sin_port = htons(atoi(port));
@@ -118,7 +107,7 @@ namespace Svc {
   void UdpReceiverComponentImpl ::
     Sched_handler(
         const NATIVE_INT_TYPE portNum,
-        NATIVE_UINT_TYPE context
+        U32 context
     )
   {
       this->tlmWrite_UR_BytesReceived(this->m_bytesReceived);
@@ -128,12 +117,12 @@ namespace Svc {
 
   void UdpReceiverComponentImpl::workerTask(void* ptr) {
       UdpReceiverComponentImpl *compPtr = static_cast<UdpReceiverComponentImpl*>(ptr);
-      while (1) {
+      while (true) {
           compPtr->doRecv();
       }
   }
 
-  void UdpReceiverComponentImpl::doRecv(void) {
+  void UdpReceiverComponentImpl::doRecv() {
 
       // wait for data from the socket
       NATIVE_INT_TYPE psize = recvfrom(
@@ -201,7 +190,6 @@ namespace Svc {
       }
 
       // call output port
-      DEBUG_PRINT("Calling port %d with %d bytes.\n",portNum,this->m_portBuff.getBuffLength());
       if (this->isConnected_PortsOut_OutputPort(portNum)) {
 
           Fw::SerializeStatus stat = this->PortsOut_out(portNum,this->m_portBuff);
@@ -220,9 +208,10 @@ namespace Svc {
   }
 
 #ifdef BUILD_UT
-  void UdpReceiverComponentImpl::UdpSerialBuffer::operator=(const UdpReceiverComponentImpl::UdpSerialBuffer& other) {
+  UdpReceiverComponentImpl::UdpSerialBuffer& UdpReceiverComponentImpl::UdpSerialBuffer::operator=(const UdpReceiverComponentImpl::UdpSerialBuffer& other) {
       this->resetSer();
       this->serialize(other.getBuffAddr(),other.getBuffLength(),true);
+      return *this;
   }
 
   UdpReceiverComponentImpl::UdpSerialBuffer::UdpSerialBuffer(

@@ -1,4 +1,3 @@
-\page SvcActiveTextLoggerComponent Svc::ActiveTextLogger Component
 # Svc::ActiveTextLogger Component
 
 ## 1. Introduction
@@ -16,7 +15,7 @@ ISF-ATL-002 | The `Svc::ActiveTextLogger` component shall write received log tex
 ISF-ATL-003 | The `Svc::ActiveTextLogger` component shall format the passed log text on the calling thread context, and perform all other processing on the component's thread. | Inspection
 ISF-ATL-004 | The `Svc::ActiveTextLogger` component shall stop writing to the optional file if it would exceed its max size. | Unit Test
 ISF-ATL-005 | The `Svc::ActiveTextLogger` component shall provide a public method to supply the filename to write to and max size. | Unit Test
-ISF-ATL-006 | The `Svc::ActiveTextLogger` component shall attempt to create a new file to write to if the supplied one already exists.  It will try up to ten times, by adding an integer suffix to the filename, ie "file","file0","file1"..."file9" | Unit Test
+ISF-ATL-006 | The `Svc::ActiveTextLogger` component shall attempt to create a new file to write to if the supplied one already exists.  It will try up to ten times, by adding an integer suffix to the filename, ie "file","file0","file1"..."file9". After the last possible attempt is failed, the initial file shall be overwritten; ie if "file9" already exists, the "file" shall be truncated and used as a log file. | Unit Test
 
 
 ## 3. Design
@@ -27,7 +26,7 @@ ISF-ATL-006 | The `Svc::ActiveTextLogger` component shall attempt to create a ne
 
 The `Svc::ActiveTextLogger` component has the following component diagram:
 
-![`Svc::ActiveTextLogger` Diagram](img/ActiveTextLoggerBDD.jpg "Svc::ActiveTextLogger")
+> TODO
 
 #### 3.1.2 Ports
 
@@ -35,7 +34,7 @@ The `Svc::ActiveTextLogger` component uses the following port types:
 
 Port Data Type | Name | Direction | Kind | Usage
 -------------- | ---- | --------- | ---- | -----
-[`Fw::LogText`](../../../Fw/Log/docs/sdd.html) | TextLogger | Input | Synchronous | Logging port
+[`Fw::LogText`](../../../Fw/Log/docs/sdd.md) | TextLogger | Input | Synchronous | Logging port
 
 ### 3.2 Functional Description
 
@@ -45,7 +44,7 @@ The `Svc::ActiveTextLogger` component provides a text logging function for the s
 
 Once a valid file and max size is supplied via a public function call, the `Svc::ActiveTextLogger` component writes to that file as well as standard output.  The `Svc::ActiveTextLogger` component will stop writing to the file if it would exceed the maximum size.
 
-If the file supplied already exists, the `Svc::ActiveTextLogger` component will attempt to create a new file up to ten times by appending an integer suffix to end of the file name.
+If the file supplied already exists, the `Svc::ActiveTextLogger` component will attempt to create a new file up to ten times by appending an integer suffix to end of the file name. After the last possible attempt is failed, the initial file is overwritten.
 
 ### 3.3 Scenarios
 
@@ -61,25 +60,11 @@ TODO
 
 ## 4. Dictionaries
 
-[Dictionaries](ActiveTextLogger.html)
-
 ## 5. Module Checklists
-
-Document | Link
--------- | ----
-Design Checklist | [Link](Checklist_Design.xlsx)
-Code Checklist | [Link](Checklist_Code.xlsx)
-Unit Test Checklist | [Link](Checklist_Unit_test.xlsx)
 
 ## 6. Unit Testing
 
-[Unit Test Output](../test/ut/output/test.txt)
-
-[Coverage Output - `ActiveTextLoggerImpl.cpp`](../test/ut/output/ActiveTextLoggerImpl.cpp.gcov)
-
-[Coverage Output - `ActiveTextLoggerComponentAc.cpp`](../test/ut/output/ActiveTextLoggerComponentAc.cpp.gcov)
-
-[Report](../test/ut/output/SvcActiveTextLogger_gcov.txt)
+To see unit test coverage run fprime-util check --coverage
 
 ## 7. Change Log
 

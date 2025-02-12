@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  Sequence.cpp
 // \author Bocchino/Canham
 // \brief  Implementation file for CmdSequencer::Sequence
@@ -6,6 +6,7 @@
 // Copyright (C) 2009-2018 California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
+// ======================================================================
 
 #include <Fw/Types/Assert.hpp>
 #include <Svc/CmdSequencer/CmdSequencerImpl.hpp>
@@ -19,16 +20,16 @@ namespace Svc {
         m_allocatorId(0)
     {
 
-    };
+    }
 
     CmdSequencerComponentImpl::Sequence ::
-      ~Sequence(void)
+      ~Sequence()
     {
 
     }
 
     CmdSequencerComponentImpl::Sequence::Header ::
-      Header(void) :
+      Header() :
         m_fileSize(0),
         m_numRecords(0),
         m_timeBase(TB_DONT_CARE),
@@ -77,52 +78,59 @@ namespace Svc {
           NATIVE_INT_TYPE identifier,
           Fw::MemAllocator& allocator,
           NATIVE_UINT_TYPE bytes
-      ) 
+      )
     {
         // has to be at least as big as a header
         FW_ASSERT(bytes >= Sequence::Header::SERIALIZED_SIZE);
         bool recoverable;
         this->m_allocatorId = identifier;
         this->m_buffer.setExtBuffer(
-            static_cast<U8*>(allocator.allocate(identifier,bytes,recoverable)),
+            static_cast<U8*>(allocator.allocate(static_cast<NATIVE_UINT_TYPE>(identifier),bytes,recoverable)),
             bytes
         );
     }
 
     void CmdSequencerComponentImpl::Sequence ::
-      deallocateBuffer(Fw::MemAllocator& allocator) 
+      deallocateBuffer(Fw::MemAllocator& allocator)
     {
         allocator.deallocate(
-            this->m_allocatorId,
+            static_cast<NATIVE_UINT_TYPE>(this->m_allocatorId),
             this->m_buffer.getBuffAddr()
         );
         this->m_buffer.clear();
     }
 
-    const CmdSequencerComponentImpl::Sequence::Header& 
+    const CmdSequencerComponentImpl::Sequence::Header&
       CmdSequencerComponentImpl::Sequence ::
-        getHeader(void) const
+        getHeader() const
     {
       return this->m_header;
     }
-    
+
     void CmdSequencerComponentImpl::Sequence ::
-      setFileName(const Fw::CmdStringArg& fileName)
+      setFileName(const Fw::StringBase& fileName)
     {
         this->m_fileName = fileName;
         this->m_logFileName = fileName;
+        this->m_stringFileName = fileName;
     }
 
     Fw::CmdStringArg& CmdSequencerComponentImpl::Sequence ::
-      getFileName(void)
+      getFileName()
     {
         return this->m_fileName;
     }
 
     Fw::LogStringArg& CmdSequencerComponentImpl::Sequence ::
-      getLogFileName(void)
+      getLogFileName()
     {
         return this->m_logFileName;
+    }
+
+    Fw::String& CmdSequencerComponentImpl::Sequence ::
+      getStringFileName()
+    {
+        return this->m_stringFileName;
     }
 
 }

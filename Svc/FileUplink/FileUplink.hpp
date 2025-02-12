@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  FileUplink.hpp
 // \author bocchino
 // \brief  hpp file for FileUplink component implementation class
@@ -7,8 +7,8 @@
 // Copyright 2009-2016, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef Svc_FileUplink_HPP
 #define Svc_FileUplink_HPP
@@ -26,7 +26,7 @@ namespace Svc {
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Types 
+      // Types
       // ----------------------------------------------------------------------
 
       //! The ReceiveMode type
@@ -36,10 +36,10 @@ namespace Svc {
       class File {
 
         public:
-          
+
           //! The file size
           U32 size;
-         
+
           //! The file name
           Fw::LogStringArg name;
 
@@ -49,7 +49,7 @@ namespace Svc {
         PRIVATE:
 
           //! The checksum for the file
-          ::CFDP::Checksum checksum;
+          ::CFDP::Checksum m_checksum;
 
         public:
 
@@ -67,7 +67,7 @@ namespace Svc {
 
           //! Get the checksum
           void getChecksum(::CFDP::Checksum& checksum) {
-            checksum = this->checksum;
+            checksum = this->m_checksum;
           }
 
       };
@@ -78,25 +78,26 @@ namespace Svc {
         public:
 
           //! Construct a FilesReceived object
-          FilesReceived(FileUplink *const fileUplink) : 
-            n(0), fileUplink(fileUplink) 
+          FilesReceived(FileUplink *const fileUplink) :
+            m_received_files_counter(0),
+            m_fileUplink(fileUplink)
           { }
 
         public:
 
           //! Record a received file
-          void fileReceived(void) {
-            ++this->n;
-            this->fileUplink->tlmWrite_FilesReceived(n);
+          void fileReceived() {
+            ++this->m_received_files_counter;
+            this->m_fileUplink->tlmWrite_FilesReceived(m_received_files_counter);
           }
 
         PRIVATE:
 
           //! The total number of files received
-          U32 n;
+          U32 m_received_files_counter;
 
           //! The enclosing FileUplink object
-          FileUplink *const fileUplink;
+          FileUplink *const m_fileUplink;
 
       };
 
@@ -106,25 +107,26 @@ namespace Svc {
         public:
 
           //! Construct a PacketsReceived object
-          PacketsReceived(FileUplink *const fileUplink) : 
-            n(0), fileUplink(fileUplink)
+          PacketsReceived(FileUplink *const fileUplink) :
+            m_received_packet_count(0),
+            m_fileUplink(fileUplink)
           { }
 
         public:
 
           //! Record a packet received
-          void packetReceived(void) {
-            ++this->n;
-            this->fileUplink->tlmWrite_PacketsReceived(n);
+          void packetReceived() {
+            ++this->m_received_packet_count;
+            this->m_fileUplink->tlmWrite_PacketsReceived(m_received_packet_count);
           }
 
         PRIVATE:
 
-          //! The total number of cancel packets
-          U32 n;
+          //! The total number of received packets
+          U32 m_received_packet_count;
 
           //! The enclosing FileUplink object
-          FileUplink *const fileUplink;
+          FileUplink *const m_fileUplink;
 
       };
 
@@ -134,8 +136,9 @@ namespace Svc {
         public:
 
           //! Construct a Warnings object
-          Warnings(FileUplink *const fileUplink) : 
-            n(0), fileUplink(fileUplink)
+          Warnings(FileUplink *const fileUplink) :
+            m_warning_count(0),
+            m_fileUplink(fileUplink)
           { }
 
         public:
@@ -158,6 +161,11 @@ namespace Svc {
               const U32 lastSequenceIndex
           );
 
+          //! Record a Duplicate Packet warning
+          void packetDuplicate(
+              const U32 sequenceIndex
+          );
+
           //! Record a File Write warning
           void fileWrite(Fw::LogStringArg& fileName);
 
@@ -170,18 +178,18 @@ namespace Svc {
         PRIVATE:
 
           //! Record a warning
-          void warning(void) {
-            ++this->n;
-            this->fileUplink->tlmWrite_Warnings(n);
+          void warning() {
+            ++this->m_warning_count;
+            this->m_fileUplink->tlmWrite_Warnings(m_warning_count);
           }
 
         PRIVATE:
 
           //! The total number of warnings
-          U32 n;
+          U32 m_warning_count;
 
           //! The enclosing FileUplink object
-          FileUplink *const fileUplink;
+          FileUplink *const m_fileUplink;
 
       };
 
@@ -197,16 +205,9 @@ namespace Svc {
           const char *const name //!< The component name
       );
 
-      //! Initialize object FileUplink
-      //!
-      void init(
-          const NATIVE_INT_TYPE queueDepth, //!< The queue depth
-          const NATIVE_INT_TYPE instance //!< The instance number
-      );
-
       //! Destroy object FileUplink
       //!
-      ~FileUplink(void);
+      ~FileUplink();
 
     PRIVATE:
 
@@ -232,7 +233,7 @@ namespace Svc {
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Private helper functions 
+      // Private helper functions
       // ----------------------------------------------------------------------
 
       //! Handle a start packet
@@ -245,43 +246,49 @@ namespace Svc {
       void handleEndPacket(const Fw::FilePacket::EndPacket& endPacket);
 
       //! Handle a cancel packet
-      void handleCancelPacket(void);
+      void handleCancelPacket();
 
       //! Check sequence index
       void checkSequenceIndex(const U32 sequenceIndex);
+
+      //! Check if a received packet is a duplicate
+      bool checkDuplicatedPacket(const U32 sequenceIndex);
 
       //! Compare checksums
       void compareChecksums(const Fw::FilePacket::EndPacket& endPacket);
 
       //! Go to START mode
-      void goToStartMode(void);
+      void goToStartMode();
 
       //! Go to DATA mode
-      void goToDataMode(void);
+      void goToDataMode();
 
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Member variables 
+      // Member variables
       // ----------------------------------------------------------------------
 
       //! The receive mode
-      ReceiveMode receiveMode;
+      ReceiveMode m_receiveMode;
 
       //! The sequence index of the last packet received
-      U32 lastSequenceIndex;
+      U32 m_lastSequenceIndex;
+
+      //! The write status of the last packet received
+      Os::File::Status m_lastPacketWriteStatus;
 
       //! The file being assembled
-      File file;
+      File m_file;
 
       //! The total number of files received
-      FilesReceived filesReceived;
+      FilesReceived m_filesReceived;
 
       //! The total number of cancel packets
-      PacketsReceived packetsReceived;
+      PacketsReceived m_packetsReceived;
 
       //! The total number of warnings
-      Warnings warnings;
+      Warnings m_warnings;
 
   };
 

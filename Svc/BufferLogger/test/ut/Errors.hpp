@@ -13,14 +13,14 @@
 #ifndef Svc_Errors_HPP
 #define Svc_Errors_HPP
 
-#include "Tester.hpp"
+#include "BufferLoggerTester.hpp"
 
 namespace Svc {
 
   namespace Errors {
 
-    class Tester :
-      public Svc::Tester
+    class BufferLoggerTester :
+      public Svc::BufferLoggerTester
     {
 
       public:
@@ -30,13 +30,13 @@ namespace Svc {
         // ----------------------------------------------------------------------
 
         //! Log file open error
-        void LogFileOpen(void);
+        void LogFileOpen();
 
         //! Log file write error
-        void LogFileWrite(void);
+        void LogFileWrite();
 
         //! Log file validation error
-        void LogFileValidation(void);
+        void LogFileValidation();
 
     };
 

@@ -1,48 +1,59 @@
-#ifndef FW_LOG_STRING_TYPE_HPP
-#define FW_LOG_STRING_TYPE_HPP
+// ======================================================================
+// @file   LogString.hpp
+// @author F Prime
+// @brief  A string sized for an event log entry
+// ======================================================================
 
-#include <Fw/Types/BasicTypes.hpp>
-#include <Fw/Types/StringType.hpp>
+#ifndef FW_LOG_STRING_HPP
+#define FW_LOG_STRING_HPP
+
 #include <FpConfig.hpp>
-#include <Fw/Cfg/SerIds.hpp>
+
+#include "Fw/Cfg/SerIds.hpp"
+#include "Fw/Types/StringBase.hpp"
 
 namespace Fw {
 
-    class LogStringArg : public Fw::StringBase {
-        public:
-
-            enum {
-                SERIALIZED_TYPE_ID = FW_TYPEID_LOG_STR,
-                SERIALIZED_SIZE = FW_LOG_STRING_MAX_SIZE + sizeof(FwBuffSizeType) // size of buffer + storage of two size words
-            };
-
-            LogStringArg(const char* src);
-            LogStringArg(const StringBase& src);
-            LogStringArg(const LogStringArg& src);
-            LogStringArg(void);
-            ~LogStringArg(void);
-            const char* toChar(void) const;
-            NATIVE_UINT_TYPE length(void) const;
-            // This method is set by the autocode to the max length specified in the XML declaration for a particular event.
-            void setMaxSerialize(NATIVE_UINT_TYPE size); // limit amount serialized
-
-            const LogStringArg& operator=(const LogStringArg& other); //!< equal operator for other strings
-
-            SerializeStatus serialize(SerializeBufferBase& buffer) const;
-            SerializeStatus deserialize(SerializeBufferBase& buffer);
-#if FW_SERIALIZABLE_TO_STRING
-            void toString(StringBase& text) const;
-#endif
-
-        private:
-
-            NATIVE_UINT_TYPE getCapacity(void) const ; //!< return buffer size
-            void terminate(NATIVE_UINT_TYPE size); //!< terminate the string
-
-            char m_buf[FW_LOG_STRING_MAX_SIZE];
-            NATIVE_UINT_TYPE m_maxSer;
+class LogStringArg final : public StringBase {
+  public:
+    enum {
+        SERIALIZED_TYPE_ID = FW_TYPEID_LOG_STR,
+        STRING_SIZE = FW_LOG_STRING_MAX_SIZE,
+        SERIALIZED_SIZE = STATIC_SERIALIZED_SIZE(STRING_SIZE)
     };
 
-}
+    LogStringArg() : StringBase() { *this = ""; }
+
+    LogStringArg(const LogStringArg& src) : StringBase() { *this = src; }
+
+    LogStringArg(const StringBase& src) : StringBase() { *this = src; }
+
+    LogStringArg(const char* src) : StringBase() { *this = src; }
+
+    ~LogStringArg() {}
+
+    LogStringArg& operator=(const LogStringArg& src) {
+        (void)StringBase::operator=(src);
+        return *this;
+    }
+
+    LogStringArg& operator=(const StringBase& src) {
+        (void)StringBase::operator=(src);
+        return *this;
+    }
+
+    LogStringArg& operator=(const char* src) {
+        (void)StringBase::operator=(src);
+        return *this;
+    }
+
+    const char* toChar() const { return this->m_buf; }
+
+    StringBase::SizeType getCapacity() const { return sizeof this->m_buf; }
+
+  private:
+    char m_buf[BUFFER_SIZE(STRING_SIZE)];
+};
+}  // namespace Fw
 
 #endif

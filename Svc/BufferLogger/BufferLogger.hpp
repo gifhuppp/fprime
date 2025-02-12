@@ -53,7 +53,7 @@ namespace Svc {
           );
 
           //! Destroy a File object
-          ~File(void);
+          ~File();
 
         public:
 
@@ -77,15 +77,15 @@ namespace Svc {
           );
 
           //! Close the file and emit an event
-          void closeAndEmitEvent(void);
+          void closeAndEmitEvent();
 
           //! Flush the file
-          bool flush(void);
+          bool flush();
 
         PRIVATE:
 
           //! Open the file
-          void open(void);
+          void open();
 
           //! Write a buffer to a file
           //! \return Success or failure
@@ -108,45 +108,45 @@ namespace Svc {
           );
 
           //! Write a hash file
-          void writeHashFile(void);
+          void writeHashFile();
 
           //! Close the file
-          void close(void);
+          void close();
 
         PRIVATE:
 
           //! The enclosing BufferLogger instance
-          BufferLogger& bufferLogger;
+          BufferLogger& m_bufferLogger;
 
           //! The prefix to use for file names
-          Fw::String prefix;
+          Fw::String m_prefix;
 
           //! The suffix to use for file names
-          Fw::String suffix;
+          Fw::String m_suffix;
 
           //! The file name base
-          Fw::String baseName;
+          Fw::String m_baseName;
 
           //! The counter to use for the same file name
-          NATIVE_UINT_TYPE fileCounter;
+          NATIVE_UINT_TYPE m_fileCounter;
 
           //! The maximum file size
-          U32 maxSize;
+          U32 m_maxSize;
 
           //! The number of bytes to use when storing the size field at the start of each buffer
-          U8 sizeOfSize;
+          U8 m_sizeOfSize;
 
           //! The name of the currently open file
-          Fw::String name;
+          Fw::String m_name;
 
           // The current mode
-          Mode::t mode;
+          Mode::t m_mode;
 
           //! The underlying Os::File representation
-          Os::File osFile;
+          Os::File m_osFile;
 
           //! The number of bytes written to the current file
-          U32 bytesWritten;
+          U32 m_bytesWritten;
 
       }; // class File
 
@@ -161,11 +161,6 @@ namespace Svc {
           const char *const compName /*!< The component name*/
       );
 
-      //! Initialize a BufferLogger object
-      void init(
-          const NATIVE_INT_TYPE queueDepth, //!< The queue depth
-          const NATIVE_INT_TYPE instance //!< The instance number
-      );
 
       // ----------------------------------------------------------------------
       // Public methods
@@ -211,7 +206,7 @@ namespace Svc {
       //!
       void schedIn_handler(
           const NATIVE_INT_TYPE portNum, /*!< The port number*/
-          NATIVE_UINT_TYPE context /*!< The call order*/
+          U32 context /*!< The call order*/
       );
 
     PRIVATE:
@@ -240,7 +235,7 @@ namespace Svc {
       void BL_SetLogging_cmdHandler(
           const FwOpcodeType opCode, /*!< The opcode*/
           const U32 cmdSeq, /*!< The command sequence number*/
-          LogState state
+          BufferLogger_LogState state
       );
 
       //! Implementation for BL_FlushFile command handler
@@ -257,7 +252,7 @@ namespace Svc {
       // ----------------------------------------------------------------------
 
       //! The logging state
-      LogState m_state;
+      BufferLogger_LogState m_state;
 
       //! The file
       File m_file;

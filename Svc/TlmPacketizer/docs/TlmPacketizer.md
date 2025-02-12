@@ -1,6 +1,4 @@
-<title>TlmPacketizer Component Dictionary</title>
-# TlmPacketizer Component Dictionary
-
+# Svc::TlmPacketizer Component Dictionary
 
 ## Command List
 

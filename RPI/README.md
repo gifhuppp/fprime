@@ -17,7 +17,7 @@ This demo was developed on a Raspberry Pi 2 model B. The following directions ar
  
 **Disable use of the UART for the Linux console:**
 
-[Disable UART](https://www.raspberrypi.org/documentation/configuration/uart.md)
+[Disable UART](https://www.raspberrypi.com/documentation/computers/configuration.html)
 
 If the UART port is not set up correctly, there will be a file open error.
  
@@ -39,13 +39,20 @@ If the UART port is not set up correctly, there will be a file open error.
 
 **Install the packages necessary to run the demo.** 
 
-Please see [INSTALL.md](../docs/INSTALL.md) to ensure that the F´ application has been installed and tested with the basic Ref. For cross-compiling, clone the cross-compile tools from [here](https://github.com/raspberrypi/tools). This demo has configuration files that assume that the tools have been installed in `/opt/rpi`. If they are installed elsewhere, the user can set the environment variable `RPI_TOOLCHAIN_DIR` to the full tools directory.  e.g. in bash the user may run `export RPI_TOOLCHAIN_DIR=/opt/rpi/tools/arm-bcm2708/arm-rpi-4.9.3-linux-gnueabihf/`.
+Please see [install guide](../docs/getting-started/installing-fprime.md) to ensure that the F´ application has been installed and tested with the basic Ref. Additionally, the
+cross-compilers need to be installed. This is done by installing the `gcc-arm-linux-gnueabihf` and `g++-arm-linux-gnueabihf` packages on the host
+system. This is shown on Ubuntu below.
+
+**Example: Installing Cross-Compilers for Raspberry PI on Ubuntu**
+```
+sudo apt update && sudo apt install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+```
 
 ### Build the software
 
 **Crosscompiling using CMake:**
 
-The following commands are described at length in the getting started [tutorial](../docs/Tutorials/GettingStarted/Tutorial.md). These commands will
+The following commands are described at length in the [HelloWorld tutorial](../docs/tutorials/index.md). These commands will
 go to the RPI directory and generate a build directory for the RPI example. This step generates a CMake Cache, sets the toolchain use to build the
 code and does an initial scan of the source tree. Since the RPI example sets a default F´ toolchain file in its CMakeLists.txt, we do not need to 
 supply one on the command line when generating the build. This only needs to be done once to prepare for the build because CMake will detect
@@ -75,7 +82,8 @@ is not blocked by the system firewall, and is properly forwarded to the network 
 home network where the pi and the user's computer are connected to the same network, these typically do not require special setup.
 
 ```
-./scripts/run_rpi_cross.sh
+cd fprime/RPI
+fprime-gds -n --dictionary ./build-artifacts/raspberrypi/dict/RPITopologyDictionary.json
 ```
 The ground station should now appear in the user's default browser. Should the user wish to terminate the ground system, return to that terminal
 and press CTRL-C to shut it down. Please allow it a few moments to finalize and exit.  The user may then kill the browser tab displaying the GUI.
@@ -99,6 +107,8 @@ following command to launch the embedded application:
 
 Switching back to the browser's GUI, the user should see channelized telemetry updating by clicking on the "Channels" tab and events by clicking
 on the "Events" tab.
+
+**Note:** the user should ensure that port 50000 is allowed through the ground computer's firewall.
 
 **Run some commands:**
 

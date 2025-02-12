@@ -1,9 +1,8 @@
-\page RefPingReceiverComponent Ref::PingReceiver Component
 # Ref::PingReceiver Component
 
 ## 1. Introduction
 
-The `Ref::PingReceiver` is a demonstration component that accepts pings from the Health Component [HTML](../../../Svc/Health/docs/sdd.html) [MD](../../../Svc/Health/docs/sdd.md) and has commands to disable ping responses for testing purposes.
+The `Ref::PingReceiver` is a demonstration component that accepts pings from the [Health Component](../../../Svc/Health/docs/sdd.md) and has commands to disable ping responses for testing purposes.
 
 ## 2. Requirements
 
@@ -25,8 +24,6 @@ The `Ref::PingReceiver` component has the following component diagram:
 ![`Ref::PingReceiver` Diagram](img/PingReceiverBDD.jpg "Ref::PingReceiver")
 
 ## 4. Dictionaries
-
-Dictionaries: [HTML](PingReceiver.html) [MD](PingReceiver.md)
 
 ## 5. Module Checklists
 

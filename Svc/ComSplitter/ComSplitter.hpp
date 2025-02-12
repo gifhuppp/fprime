@@ -30,9 +30,7 @@ namespace Svc {
 
       ComSplitter(const char* compName);
 
-      ~ComSplitter(void);
-
-      void init(NATIVE_INT_TYPE instance);
+      ~ComSplitter();
 
       // ----------------------------------------------------------------------
       // Handler implementations
@@ -48,6 +46,6 @@ namespace Svc {
 
     };
 
-};
+}
 
 #endif

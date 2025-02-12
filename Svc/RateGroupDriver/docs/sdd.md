@@ -1,4 +1,3 @@
-\page SvcRateGroupDriverComponent Svc::RateGroupDriver Component
 # Svc::RateGroupDriver Component
 
 ## 1. Introduction
@@ -32,15 +31,18 @@ The Svc::RateGroupDriver component uses the following port types:
 
 Port Data Type | Name | Direction | Kind | Usage
 -------------- | ---- | --------- | ---- | -----
-[`Svc::Cycle`](../Sched/docs/sdd.html) | CycleIn | Input | Synchronous | Receive the system tick
-[`Svc::Cycle`](../Sched/docs/sdd.html) | CycleOut| Output | n/a | Used to drive rate groups
+[`Svc::Cycle`](../../Sched/docs/sdd.md) | CycleIn | Input | Synchronous | Receive the system tick
+[`Svc::Cycle`](../../Sched/docs/sdd.md) | CycleOut| Output | n/a | Used to drive rate groups
 
 #### 3.2 Functional Description
 
 The Svc::RateGroupDriver component has one input port that receives a system tick. 
-The constructor has an array of integer arguments that specifies the divisors for each output port.
 
-    RateGroupDriverImpl(const char* compName, NATIVE_INT_TYPE dividers[], NATIVE_INT_TYPE numDividers);
+The `configure()` function is passed an array of integer arguments that specifies the divisors for each output port. This should be called after the constructor but before any port calls are made. The contents of the array are copied during the call, so the array can be a temporary variable.
+
+```
+    RateGroupDriverImpl::configure(NATIVE_INT_TYPE dividers[], NATIVE_INT_TYPE numDividers);
+```    
 
 The input rate for each output port will be divided down by the value in the `dividers[]` array corresponding to the output port number.
 
@@ -79,11 +81,11 @@ No dictionary for this module
 
 ## 5. Module Checklists
 
-Document | Link
--------- | ----
-Design Checklist | [Link](Checklist_Design.xlsx)
-Code Review Checklist | [Link](Checklist_Code.xlsx)
-Unit Test Checklist | [Link](Checklist_Unit_Test.xlsx)
+Checklist |
+-------- |
+[Design](Checklist_Design.xlsx) |
+[Code](Checklist_Code.xlsx) |
+[Unit Test](Checklist_Unit_Test.xls) |
 
 ## 6. Unit Testing
 

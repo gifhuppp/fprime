@@ -1,4 +1,4 @@
-// ====================================================================== 
+// ======================================================================
 // \title  FilePacket.hpp
 // \author bocchino
 // \brief  hpp file for FilePacket
@@ -7,15 +7,15 @@
 // Copyright 2009-2016, by the California Institute of Technology.
 // ALL RIGHTS RESERVED.  United States Government Sponsorship
 // acknowledged.
-// 
-// ====================================================================== 
+//
+// ======================================================================
 
 #ifndef Fw_FilePacket_HPP
 #define Fw_FilePacket_HPP
 
 #include <CFDP/Checksum/Checksum.hpp>
 #include <Fw/Buffer/Buffer.hpp>
-#include <Fw/Types/BasicTypes.hpp>
+#include <FpConfig.hpp>
 #include <Fw/Types/SerialBuffer.hpp>
 #include <Fw/Types/Serializable.hpp>
 
@@ -51,13 +51,13 @@ namespace Fw {
           //! The maximum length of a path name
           enum { MAX_LENGTH = 255 };
 
-        public:
-          
+        PRIVATE:
+
           //! The length
-          U8 length;
+          U8 m_length;
 
           //! Pointer to the path value
-          const char *value;
+          const char *m_value;
 
         public:
 
@@ -67,7 +67,17 @@ namespace Fw {
           );
 
           //! Compute the buffer size needed to hold this PathName
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
+
+          //! Get the length of the path name value
+          U32 getLength(void) const {
+              return this->m_length;
+          };
+
+          //! Get the path name value
+          const char* getValue(void) const {
+              return this->m_value;
+          };
 
         PRIVATE:
 
@@ -84,14 +94,16 @@ namespace Fw {
 
           friend union FilePacket;
 
-        public:
+        PRIVATE:
 
           //! The packet type
-          Type type;
+          Type m_type;
 
           //! The sequence index
-          U32 sequenceIndex;
-          
+          U32 m_sequenceIndex;
+
+        public:
+
           //! Header size
           enum { HEADERSIZE = sizeof(U8) + sizeof(U32) };
 
@@ -104,13 +116,22 @@ namespace Fw {
           );
 
           //! Compute the buffer size needed to hold this Header
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
 
           //! Initialize this Header from a SerialBuffer
           SerializeStatus fromSerialBuffer(SerialBuffer& serialBuffer);
 
           //! Write this Header to a SerialBuffer
           SerializeStatus toSerialBuffer(SerialBuffer& serialBuffer) const;
+
+        public:
+          Type getType(void) const {
+              return this->m_type;
+          };
+
+          U32 getSequenceIndex(void) const {
+              return this->m_sequenceIndex;
+          };
 
       };
 
@@ -119,19 +140,19 @@ namespace Fw {
 
           friend union FilePacket;
 
-        public:
+        PRIVATE:
 
           //! The packet header
-          Header header;
+          Header m_header;
 
           //! The file size
-          U32 fileSize;
+          U32 m_fileSize;
 
           //! The source path
-          PathName sourcePath;
+          PathName m_sourcePath;
 
           //! The destination path
-          PathName destinationPath;
+          PathName m_destinationPath;
 
         public:
 
@@ -143,11 +164,25 @@ namespace Fw {
           );
 
           //! Compute the buffer size needed to hold this StartPacket
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
 
           //! Convert this StartPacket to a Buffer
           SerializeStatus toBuffer(Buffer& buffer) const;
 
+          //! Get the destination path
+          const PathName& getDestinationPath() const {
+              return this->m_destinationPath;
+          };
+
+          //! Get the source path
+          const PathName& getSourcePath() const {
+              return this->m_sourcePath;
+          };
+
+          //! Get the file size
+          U32 getFileSize() const {
+              return this->m_fileSize;
+          };
         PRIVATE:
 
           //! Initialize this StartPacket from a SerialBuffer
@@ -163,27 +198,26 @@ namespace Fw {
 
           friend union FilePacket;
 
-        public:
+        PRIVATE:
 
           //! The packet header
-          Header header;
+          Header m_header;
 
           //! The byte offset of the packet data into the destination file
-          U32 byteOffset;
+          U32 m_byteOffset;
 
           //! The size of the file data in the packet
-          U16 dataSize;
+          U16 m_dataSize;
 
           //! Pointer to the file data
-          const U8 *data;
+          const U8 *m_data;
+
+        public:
 
           //! header size
           enum { HEADERSIZE = Header::HEADERSIZE +
               sizeof(U32) +
               sizeof(U16) };
-
-
-        public:
 
           //! Initialize a data packet
           void initialize(
@@ -194,19 +228,38 @@ namespace Fw {
           );
 
           //! Compute the buffer size needed to hold this DataPacket
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
 
           //! Convert this DataPacket to a Buffer
           SerializeStatus toBuffer(Buffer& buffer) const;
 
+          //! Get this as a Header
+          const FilePacket::Header& asHeader() const {
+              return this->m_header;
+          };
+
+          //! Get the byte offset
+          U32 getByteOffset() const {
+              return this->m_byteOffset;
+          };
+
+          //! Get the data size
+          U32 getDataSize() const {
+              return this->m_dataSize;
+          };
+
+          //! Get the data
+          const U8* getData() const {
+              return this->m_data;
+          };
         PRIVATE:
 
           //! Initialize this DataPacket from a SerialBuffer
           SerializeStatus fromSerialBuffer(SerialBuffer& serialBuffer);
 
           //! Compute the fixed-length data size of a StartPacket
-          U32 fixedLengthSize(void) const;
-          
+          U32 fixedLengthSize() const;
+
           //! Write this DataPacket to a SerialBuffer
           SerializeStatus toSerialBuffer(SerialBuffer& serialBuffer) const;
 
@@ -217,10 +270,12 @@ namespace Fw {
 
           friend union FilePacket;
 
-        public:
+        PRIVATE:
 
           //! The packet header
-          Header header;
+          Header m_header;
+
+        public:
 
           //! Set the checksum
           void setChecksum(const CFDP::Checksum& checksum);
@@ -229,13 +284,17 @@ namespace Fw {
           void getChecksum(CFDP::Checksum& checksum) const;
 
           //! Compute the buffer size needed to hold this EndPacket
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
 
           //! Convert this EndPacket to a Buffer
           SerializeStatus toBuffer(Buffer& buffer) const;
 
+          //! Get this as a Header
+          const FilePacket::Header& asHeader() const {
+              return this->m_header;
+          };
         public:
-          
+
           //! Initialize an end packet
           void initialize(
               const U32 sequenceIndex, //!< The sequence index
@@ -245,7 +304,7 @@ namespace Fw {
         PRIVATE:
 
           //! The checksum
-          U32 checksumValue;
+          U32 m_checksumValue;
 
           //! Initialize this EndPacket from a SerialBuffer
           SerializeStatus fromSerialBuffer(SerialBuffer& serialBuffer);
@@ -260,10 +319,10 @@ namespace Fw {
 
           friend union FilePacket;
 
-        public:
+        PRIVATE:
 
           //! The packet header
-          Header header;
+          Header m_header;
 
         public:
 
@@ -273,11 +332,15 @@ namespace Fw {
           );
 
           //! Compute the buffer size needed to hold this CancelPacket
-          U32 bufferSize(void) const;
+          U32 bufferSize() const;
 
           //! Convert this CancelPacket to a Buffer
           SerializeStatus toBuffer(Buffer& buffer) const;
 
+          //! Get this as a Header
+          const FilePacket::Header& asHeader() const {
+              return this->m_header;
+          };
         PRIVATE:
 
           //! Initialize this CancelPacket from a SerialBuffer
@@ -291,7 +354,7 @@ namespace Fw {
       // Constructor
       // ----------------------------------------------------------------------
 
-      FilePacket(void) { this->header.type = T_NONE; }
+      FilePacket() { this->m_header.m_type = T_NONE; }
 
     public:
 
@@ -305,23 +368,23 @@ namespace Fw {
 
       //! Get this as a Header
       //!
-      const Header& asHeader(void) const;
+      const Header& asHeader() const;
 
       //! Get this as a StartPacket
       //!
-      const StartPacket& asStartPacket(void) const;
+      const StartPacket& asStartPacket() const;
 
       //! Get this as a DataPacket
       //!
-      const DataPacket& asDataPacket(void) const;
+      const DataPacket& asDataPacket() const;
 
       //! Get this as an EndPacket
       //!
-      const EndPacket& asEndPacket(void) const;
+      const EndPacket& asEndPacket() const;
 
       //! Get this as a CancelPacket
       //!
-      const CancelPacket& asCancelPacket(void) const;
+      const CancelPacket& asCancelPacket() const;
 
       //! Initialize this with a StartPacket
       //!
@@ -341,7 +404,7 @@ namespace Fw {
 
       //! Get the buffer size needed to hold this FilePacket
       //!
-      U32 bufferSize(void) const;
+      U32 bufferSize() const;
 
       //! Convert this FilePacket to a Buffer
       //!
@@ -360,28 +423,28 @@ namespace Fw {
     PRIVATE:
 
       // ----------------------------------------------------------------------
-      // Private data 
+      // Private data
       // ----------------------------------------------------------------------
 
       //! this, seen as a header
       //!
-      Header header;
+      Header m_header;
 
       //! this, seen as a Start packet
       //!
-      StartPacket startPacket;
+      StartPacket m_startPacket;
 
       //! this, seen as a Data packet
       //!
-      DataPacket dataPacket;
+      DataPacket m_dataPacket;
 
       //! this, seen as an End packet
       //!
-      EndPacket endPacket;
+      EndPacket m_endPacket;
 
       //! this, seen as a Cancel packet
       //!
-      CancelPacket cancelPacket;
+      CancelPacket m_cancelPacket;
 
   };
 

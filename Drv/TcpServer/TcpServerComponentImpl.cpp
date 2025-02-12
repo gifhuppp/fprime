@@ -10,8 +10,11 @@
 //
 // ======================================================================
 
+#include <limits>
 #include <Drv/TcpServer/TcpServerComponentImpl.hpp>
-#include "Fw/Types/BasicTypes.hpp"
+#include <FpConfig.hpp>
+#include "Fw/Types/Assert.hpp"
+#include "Fw/Logger/Logger.hpp"
 
 namespace Drv {
 
@@ -20,51 +23,101 @@ namespace Drv {
 // ----------------------------------------------------------------------
 
 TcpServerComponentImpl::TcpServerComponentImpl(const char* const compName)
-    : ByteStreamDriverModelComponentBase(compName),
-      SocketReadTask() {}
-
-void TcpServerComponentImpl::init(const NATIVE_INT_TYPE instance) {
-    ByteStreamDriverModelComponentBase::init(instance);
-}
+    : TcpServerComponentBase(compName) {}
 
 SocketIpStatus TcpServerComponentImpl::configure(const char* hostname,
                                                  const U16 port,
                                                  const U32 send_timeout_seconds,
-                                                 const U32 send_timeout_microseconds) {
-    return m_socket.configure(hostname, port, send_timeout_seconds, send_timeout_microseconds);
+                                                 const U32 send_timeout_microseconds,
+	                                         FwSizeType buffer_size) {
+
+    // Check that ensures the configured buffer size fits within the limits fixed-width type, U32
+
+    FW_ASSERT(buffer_size <= std::numeric_limits<U32>::max(), static_cast<FwAssertArgType>(buffer_size));
+    m_allocation_size = buffer_size; // Store the buffer size
+				     //
+    (void)m_socket.configure(hostname, port, send_timeout_seconds, send_timeout_microseconds);
+    return startup();
 }
 
-TcpServerComponentImpl::~TcpServerComponentImpl(void) {}
-
-SocketIpStatus TcpServerComponentImpl::startup() {
-    return  this->m_socket.startup();
-}
-
-void TcpServerComponentImpl::shutdown() {
-    this->m_socket.shutdown();
-}
+TcpServerComponentImpl::~TcpServerComponentImpl() {}
 
 // ----------------------------------------------------------------------
 // Implementations for socket read task virtual methods
 // ----------------------------------------------------------------------
+
+U16 TcpServerComponentImpl::getListenPort() {
+    return m_socket.getListenPort();
+}
 
 IpSocket& TcpServerComponentImpl::getSocketHandler() {
     return m_socket;
 }
 
 Fw::Buffer TcpServerComponentImpl::getBuffer() {
-    return allocate_out(0, 1024);
+    return allocate_out(0, static_cast<U32>(m_allocation_size));
 }
 
 void TcpServerComponentImpl::sendBuffer(Fw::Buffer buffer, SocketIpStatus status) {
-    this->recv_out(0, buffer, (status == SOCK_SUCCESS) ? RECV_OK : RECV_ERROR);
+    Drv::RecvStatus recvStatus = RecvStatus::RECV_ERROR;
+    if (status == SOCK_SUCCESS) {
+        recvStatus = RecvStatus::RECV_OK;
+    }
+    else if (status == SOCK_NO_DATA_AVAILABLE) {
+        recvStatus = RecvStatus::RECV_NO_DATA;
+    }
+    else {
+        recvStatus = RecvStatus::RECV_ERROR;
+    }
+    this->recv_out(0, buffer, recvStatus);
 }
 
 void TcpServerComponentImpl::connected() {
     if (isConnected_ready_OutputPort(0)) {
         this->ready_out(0);
     }
+}
 
+bool TcpServerComponentImpl::isStarted() {
+    Os::ScopeLock scopedLock(this->m_lock);
+    return this->m_descriptor.serverFd != -1;
+}
+
+SocketIpStatus TcpServerComponentImpl::startup() {
+    Os::ScopeLock scopedLock(this->m_lock);
+    Drv::SocketIpStatus status = SOCK_SUCCESS;
+    // Prevent multiple startup attempts
+    if (this->m_descriptor.serverFd == -1) {
+        status = this->m_socket.startup(this->m_descriptor);
+    }
+    return status;
+}
+
+void TcpServerComponentImpl::terminate() {
+    Os::ScopeLock scopedLock(this->m_lock);
+    this->m_socket.terminate(this->m_descriptor);
+    this->m_descriptor.serverFd = -1;
+}
+
+void TcpServerComponentImpl::readLoop() {
+    Drv::SocketIpStatus status = Drv::SocketIpStatus::SOCK_NOT_STARTED;
+    // Keep trying to reconnect until the status is good, told to stop, or reconnection is turned off
+    do {
+         status = this->startup();
+         if (status != SOCK_SUCCESS) {
+             Fw::Logger::log("[WARNING] Failed to listen on port %hu with status %d\n", this->getListenPort(), status);
+             (void)Os::Task::delay(SOCKET_RETRY_INTERVAL);
+             continue;
+         }
+    }
+    while (this->running() && status != SOCK_SUCCESS && this->m_reopen);
+    // If start up was successful then perform normal operations
+    if (this->running() && status == SOCK_SUCCESS) {
+        // Perform the nominal read loop
+        SocketComponentHelper::readLoop();
+    }
+    // Terminate the server
+    this->terminate();
 }
 
 // ----------------------------------------------------------------------
@@ -72,20 +125,16 @@ void TcpServerComponentImpl::connected() {
 // ----------------------------------------------------------------------
 
 Drv::SendStatus TcpServerComponentImpl::send_handler(const NATIVE_INT_TYPE portNum, Fw::Buffer& fwBuffer) {
-    Drv::SocketIpStatus status = m_socket.send(fwBuffer.getData(), fwBuffer.getSize());
-    // Always return the buffer
-    deallocate_out(0, fwBuffer);
-    if ((status == SOCK_DISCONNECTED) || (status == SOCK_INTERRUPTED_TRY_AGAIN)) {
-        return SEND_RETRY;
+    Drv::SocketIpStatus status = this->send(fwBuffer.getData(), fwBuffer.getSize());
+    // Only deallocate buffer when the caller is not asked to retry
+    if (status == SOCK_INTERRUPTED_TRY_AGAIN) {
+        return SendStatus::SEND_RETRY;
     } else if (status != SOCK_SUCCESS) {
-        return SEND_ERROR;
+        deallocate_out(0, fwBuffer);
+        return SendStatus::SEND_ERROR;
     }
-    return SEND_OK;
-}
-
-Drv::PollStatus TcpServerComponentImpl::poll_handler(const NATIVE_INT_TYPE portNum, Fw::Buffer& fwBuffer) {
-    FW_ASSERT(0); // It is an error to call this handler on IP drivers
-    return Drv::POLL_ERROR;
+    deallocate_out(0, fwBuffer);
+    return SendStatus::SEND_OK;
 }
 
 }  // end namespace Drv

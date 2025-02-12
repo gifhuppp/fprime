@@ -34,13 +34,13 @@ namespace Fw {
             virtual ~QueuedComponentBase(); //!< Destructor
             void init(NATIVE_INT_TYPE instance); //!< initialization function
             Os::Queue m_queue; //!< queue object for active component
-            Os::Queue::QueueStatus createQueue(NATIVE_INT_TYPE depth, NATIVE_INT_TYPE msgSize);
-            virtual MsgDispatchStatus doDispatch(void)=0; //!< method to dispatch a single message in the queue.
+            Os::Queue::Status createQueue(FwSizeType depth, FwSizeType msgSize);
+            virtual MsgDispatchStatus doDispatch()=0; //!< method to dispatch a single message in the queue.
 #if FW_OBJECT_TO_STRING == 1
-            virtual void toString(char* str, NATIVE_INT_TYPE size); //!< dump string representation of component
+            virtual const char* getToStringFormatString(); //!< Format string for toString function
 #endif
-            NATIVE_INT_TYPE getNumMsgsDropped(void); //!< return number of messages dropped
-            void incNumMsgDropped(void); //!< increment the number of messages dropped
+            NATIVE_INT_TYPE getNumMsgsDropped(); //!< return number of messages dropped
+            void incNumMsgDropped(); //!< increment the number of messages dropped
         PRIVATE:
             NATIVE_INT_TYPE m_msgsDropped; //!< number of messages dropped from full queue
     };

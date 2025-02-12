@@ -1,32 +1,35 @@
 ####
 # F prime CMakeLists.txt:
 #
-# SOURCE_FILES: combined list of source and autocoding diles
+# SOURCE_FILES: combined list of source and autocoding files
 # MOD_DEPS: (optional) module dependencies
 #
 ####
+restrict_platforms(Posix SOCKETS)
+
 set(SOURCE_FILES
-	"${CMAKE_CURRENT_LIST_DIR}/../ByteStreamDriverModel/ByteStreamDriverComponentAi.xml"
-	"${CMAKE_CURRENT_LIST_DIR}/TcpClientComponentImpl.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/TcpClient.fpp"
+    "${CMAKE_CURRENT_LIST_DIR}/TcpClientComponentImpl.cpp"
 )
 
 # Necessary shared helpers
 set(MOD_DEPS
-	"Fw/Logger"
-	"Drv/ByteStreamDriverModel"
-	"Drv/Ip"
+    "Fw/Logger"
+    "Drv/ByteStreamDriverModel"
+    "Drv/Ip"
 )
 
 register_fprime_module()
 
 ### UTs ###
 set(UT_SOURCE_FILES
-	"${CMAKE_CURRENT_LIST_DIR}/../ByteStreamDriverModel/ByteStreamDriverComponentAi.xml"
-	"${CMAKE_CURRENT_LIST_DIR}/test/ut/TestMain.cpp"
-	"${CMAKE_CURRENT_LIST_DIR}/test/ut/Tester.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/TcpClient.fpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/TcpClientTestMain.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/TcpClientTester.cpp"
 )
 set(UT_MOD_DEPS
-	STest
-	PortSelector
+    STest
+    SocketTestHelper
 )
+set(UT_AUTO_HELPERS ON)
 register_fprime_ut()

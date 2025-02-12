@@ -1,7 +1,7 @@
 ####
 # F prime CMakeLists.txt:
 #
-# SOURCE_FILES: combined list of source and autocoding diles
+# SOURCE_FILES: combined list of source and autocoding files
 # MOD_DEPS: (optional) module dependencies
 #
 ####
@@ -11,7 +11,6 @@ set(MOD_DEPS
 )
 set(SOURCE_FILES
   "${CMAKE_CURRENT_LIST_DIR}/Logger.cpp"
-  "${CMAKE_CURRENT_LIST_DIR}/LogAssert.cpp"
 )
 register_fprime_module()
 
@@ -23,7 +22,7 @@ set(UT_MOD_DEPS
 set(UT_SOURCE_FILES
     "${CMAKE_CURRENT_LIST_DIR}/test/ut/FakeLogger.cpp"
     "${CMAKE_CURRENT_LIST_DIR}/test/ut/LoggerRules.cpp"
-    "${CMAKE_CURRENT_LIST_DIR}/test/ut/Main.cpp"
+    "${CMAKE_CURRENT_LIST_DIR}/test/ut/LoggerMain.cpp"
 )
 # STest Includes for this UT
-register_fprime_ut("Logger_Rules_Testing")
+register_fprime_ut()

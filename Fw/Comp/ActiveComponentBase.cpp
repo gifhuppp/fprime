@@ -2,25 +2,21 @@
 #include <Fw/Comp/ActiveComponentBase.hpp>
 #include <Fw/Types/Assert.hpp>
 #include <Os/TaskString.hpp>
-#include <stdio.h>
-
-//#define DEBUG_PRINT(x,...) printf(x,##__VA_ARGS__); fflush(stdout)
-#define DEBUG_PRINT(x,...)
 
 namespace Fw {
 
     class ActiveComponentExitSerializableBuffer : public Fw::SerializeBufferBase {
 
         public:
-            NATIVE_UINT_TYPE getBuffCapacity(void) const {
+            NATIVE_UINT_TYPE getBuffCapacity() const {
                 return sizeof(m_buff);
             }
 
-            U8* getBuffAddr(void) {
+            U8* getBuffAddr() {
                 return m_buff;
             }
 
-            const U8* getBuffAddr(void) const {
+            const U8* getBuffAddr() const {
                 return m_buff;
             }
 
@@ -35,121 +31,108 @@ namespace Fw {
     }
 
     ActiveComponentBase::~ActiveComponentBase() {
-        DEBUG_PRINT("ActiveComponent %s destructor.\n",this->getObjName());
     }
 
     void ActiveComponentBase::init(NATIVE_INT_TYPE instance) {
         QueuedComponentBase::init(instance);
     }
 
-#if FW_OBJECT_TO_STRING == 1 && FW_OBJECT_NAMES == 1
-    void ActiveComponentBase::toString(char* buffer, NATIVE_INT_TYPE size) {
-        (void)snprintf(buffer, size, "ActComp: %s", this->m_objName);
-        buffer[size-1] = 0;
+#if FW_OBJECT_TO_STRING == 1
+    const char* ActiveComponentBase::getToStringFormatString() {
+            return "ActComp: %s";
     }
 #endif
 
-    void ActiveComponentBase::start(NATIVE_INT_TYPE identifier, NATIVE_INT_TYPE priority, NATIVE_INT_TYPE stackSize, NATIVE_INT_TYPE cpuAffinity) {
-        this->start(static_cast<NATIVE_UINT_TYPE>(priority), static_cast<NATIVE_UINT_TYPE>(stackSize),
-                    ((cpuAffinity == -1) ? Os::Task::TASK_DEFAULT : static_cast<NATIVE_UINT_TYPE>(cpuAffinity)),
-                    static_cast<NATIVE_UINT_TYPE>(identifier));
-    }
-
-    void ActiveComponentBase::start(NATIVE_UINT_TYPE priority, NATIVE_UINT_TYPE stackSize, NATIVE_UINT_TYPE cpuAffinity, NATIVE_UINT_TYPE identifier) {
+    void ActiveComponentBase::start(Os::Task::ParamType priority, Os::Task::ParamType stackSize, Os::Task::ParamType cpuAffinity, Os::Task::ParamType identifier) {
         Os::TaskString taskName;
 
 #if FW_OBJECT_NAMES == 1
         taskName = this->getObjName();
 #else
-        char taskNameChar[FW_TASK_NAME_MAX_SIZE];
-        (void)snprintf(taskNameChar,sizeof(taskNameChar),"ActComp_%d",Os::Task::getNumTasks());
-        taskName = taskNameChar;
+        (void) taskName.format("ActComp_%" PRI_FwSizeType, Os::Task::getNumTasks());
 #endif
-// If running with the baremetal scheduler, use a variant of the task-loop that
-// does not loop internal, but waits for an external iteration call.
-#if FW_BAREMETAL_SCHEDULER == 1
-        Os::Task::taskRoutine routine = this->s_baseBareTask;
-#else
-        Os::Task::taskRoutine routine = this->s_baseTask;
-#endif
-        Os::Task::TaskStatus status = this->m_task.start(taskName, routine,this, priority, stackSize, cpuAffinity, identifier);
-        FW_ASSERT(status == Os::Task::TASK_OK,(NATIVE_INT_TYPE)status);
+        // Cooperative threads tasks externalize the task loop, and as such use the state machine as their task function
+        // Standard multithreading tasks use the task loop to respectively call the state machine
+        Os::Task::taskRoutine routine = (m_task.isCooperative()) ? this->s_taskStateMachine : this->s_taskLoop;
+        Os::Task::Arguments arguments(taskName, routine, this, priority, stackSize, cpuAffinity, static_cast<PlatformUIntType>(identifier));
+        Os::Task::Status status = this->m_task.start(arguments);
+        FW_ASSERT(status == Os::Task::Status::OP_OK,static_cast<NATIVE_INT_TYPE>(status));
     }
 
-    void ActiveComponentBase::exit(void) {
+    void ActiveComponentBase::exit() {
         ActiveComponentExitSerializableBuffer exitBuff;
-        SerializeStatus stat = exitBuff.serialize((I32)ACTIVE_COMPONENT_EXIT);
+        SerializeStatus stat = exitBuff.serialize(static_cast<I32>(ACTIVE_COMPONENT_EXIT));
         FW_ASSERT(FW_SERIALIZE_OK == stat,static_cast<NATIVE_INT_TYPE>(stat));
-        (void)this->m_queue.send(exitBuff,0,Os::Queue::QUEUE_NONBLOCKING);
-        DEBUG_PRINT("exit %s\n", this->getObjName());
+        (void)this->m_queue.send(exitBuff,0,Os::Queue::BlockingType::NONBLOCKING);
     }
 
-    Os::Task::TaskStatus ActiveComponentBase::join(void **value_ptr) {
-        DEBUG_PRINT("join %s\n", this->getObjName());
-        return this->m_task.join(value_ptr);
+    Os::Task::Status ActiveComponentBase::join() {
+        return this->m_task.join();
     }
 
-    void ActiveComponentBase::s_baseBareTask(void* ptr) {
-        FW_ASSERT(ptr != NULL);
-        ActiveComponentBase* comp = reinterpret_cast<ActiveComponentBase*>(ptr);
-        //Start if not started
-        if (!comp->m_task.isStarted()) {
-            comp->m_task.setStarted(true);
-            comp->preamble();
-        }
-        //Bare components cannot block, so return to the scheduler
-        if (comp->m_queue.getNumMsgs() == 0) {
-            return;
-        }
-        ActiveComponentBase::MsgDispatchStatus loopStatus = comp->doDispatch();
-        switch (loopStatus) {
-            case ActiveComponentBase::MSG_DISPATCH_OK: // if normal message processing, continue
+    Os::Task::Status ActiveComponentBase::join(void** pointer) {
+       return this->m_task.join();
+    }
+
+    void ActiveComponentBase::s_taskStateMachine(void* component_pointer) {
+        FW_ASSERT(component_pointer != nullptr);
+        // cast void* back to active component
+        ActiveComponentBase* component = static_cast<ActiveComponentBase*>(component_pointer);
+
+        // Each invocation of this function runs a single stage of the thread lifecycle. This has moved the thread
+        // while loop to the top level such that it can be replaced by something else (e.g. cooperative thread
+        // dispatcher) and is not intrinsic to this code.
+        switch (component->m_stage) {
+            // The first stage the active component triggers the "preamble" call before moving into the dispatching
+            // stage of the component thread.
+            case Lifecycle::CREATED:
+                component->preamble();
+                component->m_stage = Lifecycle::DISPATCHING;
                 break;
-            case ActiveComponentBase::MSG_DISPATCH_EXIT:
-                comp->finalizer();
-                comp->m_task.setStarted(false);
+            // The second stage of the active component triggers the dispatching loop dispatching messages until an
+            // exit message is received.
+            case Lifecycle::DISPATCHING:
+                if (component->dispatch() == MsgDispatchStatus::MSG_DISPATCH_EXIT) {
+                    component->m_stage = Lifecycle::FINALIZING;
+                }
+                break;
+            // The second-to-last stage is where the finalizer is called. This will transition to the final stage
+            // automatically after the finalizer is called
+            case Lifecycle::FINALIZING:
+                component->finalizer();
+                component->m_stage = Lifecycle::DONE;
+                break;
+            // The last stage does nothing, cooperative tasks live here forever, threaded tasks exit on this condition
+            case Lifecycle::DONE:
                 break;
             default:
-                FW_ASSERT(0,(NATIVE_INT_TYPE)loopStatus);
+                FW_ASSERT(0);
+                break;
         }
     }
-    void ActiveComponentBase::s_baseTask(void* ptr) {
-        // cast void* back to active component
-        ActiveComponentBase* comp = static_cast<ActiveComponentBase*> (ptr);
-        // indicated that task is started
-        comp->m_task.setStarted(true);
-        // print out message when task is started
-        // printf("Active Component %s task started.\n",comp->getObjName());
-        // call preamble
-        comp->preamble();
-        // call main task loop until exit or error
-        comp->loop();
-        // if main loop exits, call finalizer
-        comp->finalizer();
-    }
 
-    void ActiveComponentBase::loop(void) {
-
-        bool quitLoop = false;
-        while (!quitLoop) {
-            MsgDispatchStatus loopStatus = this->doDispatch();
-            switch (loopStatus) {
-                case MSG_DISPATCH_OK: // if normal message processing, continue
-                    break;
-                case MSG_DISPATCH_EXIT:
-                    quitLoop = true;
-                    break;
-                default:
-                    FW_ASSERT(0,(NATIVE_INT_TYPE)loopStatus);
-            }
+    void ActiveComponentBase::s_taskLoop(void* component_pointer) {
+        FW_ASSERT(component_pointer != nullptr);
+        ActiveComponentBase* component = static_cast<ActiveComponentBase*>(component_pointer);
+        // A non-cooperative task switching implementation is just a while-loop around the active component
+        // state-machine. Here the while loop is at top-level.
+        while (component->m_stage != ActiveComponentBase::Lifecycle::DONE) {
+            ActiveComponentBase::s_taskStateMachine(component);
         }
-
     }
 
-    void ActiveComponentBase::preamble(void) {
+    ActiveComponentBase::MsgDispatchStatus ActiveComponentBase::dispatch() {
+        // Cooperative tasks should return rather than block when no messages are available
+        if (this->m_task.isCooperative() and m_queue.getMessagesAvailable() == 0) {
+            return MsgDispatchStatus::MSG_DISPATCH_EMPTY;
+        }
+       return this->doDispatch();
     }
 
-    void ActiveComponentBase::finalizer(void) {
+    void ActiveComponentBase::preamble() {
+    }
+
+    void ActiveComponentBase::finalizer() {
     }
 
 }

@@ -18,23 +18,24 @@ namespace Os {
 
         // Get the file size:
         FileSystem::Status fs_status;
-        U64 fileSize = 0;
+        FwSignedSizeType fileSize = 0;
         fs_status = FileSystem::getFileSize(fileName, fileSize); //!< gets the size of the file (in bytes) at location path
-        if( FileSystem::OP_OK != fs_status ) {
+        // fileSize will be used as a NATIVE_INT_TYPE below and thus must cast cleanly to that type
+        if( FileSystem::OP_OK != fs_status) {
             return File::BAD_SIZE;
         }
         const NATIVE_INT_TYPE max_itr = static_cast<NATIVE_INT_TYPE>(fileSize/VFILE_HASH_CHUNK_SIZE + 1);
-        
+
         // Read all data from file and update hash:
         Utils::Hash hash;
         hash.init();
         U8 buffer[VFILE_HASH_CHUNK_SIZE];
-        NATIVE_INT_TYPE size = 0;
-        NATIVE_INT_TYPE cnt = 0;
+        FwSignedSizeType size = 0;
+        FwSignedSizeType cnt = 0;
         while( cnt <= max_itr ) {
             // Read out chunk from file:
             size = sizeof(buffer);
-            status = file.read(&buffer, size, false);
+            status = file.read(buffer, size, Os::File::WaitType::NO_WAIT);
             if( File::OP_OK != status ) {
                 return status;
             }
@@ -43,7 +44,7 @@ namespace Os {
               break;
             }
             // Add chunk to hash calculation:
-            hash.update(&buffer, size);
+            hash.update(&buffer, static_cast<NATIVE_INT_TYPE>(size));
             cnt++;
         }
         file.close();
@@ -51,7 +52,7 @@ namespace Os {
         // We should not have left the loop because of cnt > max_itr:
         FW_ASSERT(size == 0);
         FW_ASSERT(cnt <= max_itr);
-        
+
         // Calculate hash:
         Utils::HashBuffer computedHashBuffer;
         hash.final(computedHashBuffer);
@@ -64,7 +65,7 @@ namespace Os {
 
         File::Status status;
 
-        // Open hash file: 
+        // Open hash file:
         File hashFile;
         status = hashFile.open(hashFileName, File::OPEN_READ);
         if( File::OP_OK != status ) {
@@ -73,25 +74,25 @@ namespace Os {
 
         // Read hash from checksum file:
         unsigned char savedHash[HASH_DIGEST_LENGTH];
-        NATIVE_INT_TYPE size = hashBuffer.getBuffCapacity(); 
-        status = hashFile.read(&savedHash[0], size);
+        FwSignedSizeType size = hashBuffer.getBuffCapacity();
+        status = hashFile.read(savedHash, size);
         if( File::OP_OK != status ) {
             return status;
         }
-        if( size != (NATIVE_INT_TYPE) hashBuffer.getBuffCapacity() ) {
+        if( size != static_cast<NATIVE_INT_TYPE>(hashBuffer.getBuffCapacity()) ) {
             return File::BAD_SIZE;
         }
         hashFile.close();
-        
+
         // Return the hash buffer:
-        Utils::HashBuffer savedHashBuffer(savedHash, size);
+        Utils::HashBuffer savedHashBuffer(savedHash, static_cast<NATIVE_UINT_TYPE>(size));
         hashBuffer = savedHashBuffer;
 
         return status;
     }
 
     File::Status writeHash(const char* hashFileName, Utils::HashBuffer hashBuffer) {
-        // Open hash file: 
+        // Open hash file:
         File hashFile;
         File::Status status;
         status = hashFile.open(hashFileName, File::OPEN_WRITE);
@@ -100,12 +101,12 @@ namespace Os {
         }
 
         // Write out the hash
-        NATIVE_INT_TYPE size = hashBuffer.getBuffLength();
-        status = hashFile.write(hashBuffer.getBuffAddr(), size, false);
+        FwSignedSizeType size = hashBuffer.getBuffLength();
+        status = hashFile.write(hashBuffer.getBuffAddr(), size, Os::File::WaitType::NO_WAIT);
         if( File::OP_OK != status ) {
             return status;
         }
-        if( size != (NATIVE_INT_TYPE) hashBuffer.getBuffLength() ) {
+        if( size != static_cast<NATIVE_INT_TYPE>(hashBuffer.getBuffLength()) ) {
             return File::BAD_SIZE;
         }
         hashFile.close();
@@ -113,7 +114,7 @@ namespace Os {
         return status;
     }
 
-    // Enum and function for translating from a status to a validation status: 
+    // Enum and function for translating from a status to a validation status:
     typedef enum {
         FileType,
         HashFileType
@@ -168,7 +169,7 @@ namespace Os {
 
         return ValidateFile::OTHER_ERROR;
     }
-  
+
     ValidateFile::Status ValidateFile::validate(const char* fileName, const char* hashFileName) {
         Utils::HashBuffer hashBuffer; // pass by reference - final value is unused
         return validate(fileName, hashFileName, hashBuffer);
@@ -178,13 +179,13 @@ namespace Os {
 
         File::Status status;
 
-        // Read the hash file: 
+        // Read the hash file:
         Utils::HashBuffer savedHash;
         status = readHash(hashFileName, savedHash);
         if( File::OP_OK != status ) {
             return translateStatus(status, HashFileType);
         }
-        
+
         // Compute the file's hash:
         Utils::HashBuffer computedHash;
         status = computeHash(fileName, computedHash);

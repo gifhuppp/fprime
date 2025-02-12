@@ -12,11 +12,10 @@
 #ifndef BUFFER_HPP_
 #define BUFFER_HPP_
 
-#include <Fw/Types/BasicTypes.hpp>
+#include <FpConfig.hpp>
 #include <Fw/Types/Serializable.hpp>
 #if FW_SERIALIZABLE_TO_STRING
     #include <Fw/Types/StringType.hpp>
-    #include <stdio.h> // snprintf
     #ifdef BUILD_UT
         #include <iostream>
         #include <Fw/Types/String.hpp>
@@ -117,6 +116,10 @@ public:
     // ----------------------------------------------------------------------
     // Accessor functions
     // ----------------------------------------------------------------------
+
+    //! Returns true if the buffer is valid (data pointer != nullptr and size > 0)
+    //!
+    bool isValid() const;
 
     //! Returns wrapped data pointer
     //!
